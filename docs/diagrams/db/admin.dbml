@@ -71,7 +71,7 @@ Table oauth_accounts {
 // tuki_cuentas_12, tuki_movimientos_12, tuki_presupuestos_12 (tenant 12).
 // Los nombres no se guardan: se derivan del proyecto, el servicio y este id.
 Table tenants {
-  id int [pk, increment]
+  id Guid [pk]
   // Provisioning: se están creando sus bases.
   // Active: las tres bases existen y están migradas.
   // Failed: alguna creación falló; se puede reintentar.
