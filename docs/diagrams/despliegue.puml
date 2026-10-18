@@ -1,82 +1,64 @@
 @startuml despliegue
-' docs/diagramas/despliegue.puml
-' Despliegue local del backend: todo corre en una sola máquina, sin Docker, Kubernetes ni nube.
-' Cada servicio es un proceso .NET y todas las bases viven en un mismo servidor PostgreSQL.
-' Las líneas punteadas son piezas que se diseñan pero no se implementan en la beta.
+' Diagrama de despliegue de Tuki en el entorno local (sin Docker, Kubernetes ni nube).
+' Muestra qué se ejecuta, en qué puerto y con qué base de datos habla cada pieza.
 
-title Tuki: despliegue local
+title Tuki – Diagrama de despliegue (entorno local)
 
-left to right direction
 skinparam shadowing false
-skinparam ArrowColor #555555
-skinparam node {
-  BackgroundColor #FFFFFF
-  BorderColor #4A5568
+skinparam componentStyle rectangle
+
+node "Celular" {
+  component "App móvil\n(React Native)" as app
 }
 
-node "Celular o emulador" as celular {
-  artifact "App móvil\nReact Native" as app
-}
+node "Equipo local" {
 
-node "Computador local (localhost)" as pc {
+  ' Único punto de entrada: la app solo conoce al Gateway.
+  component "Gateway (YARP)\n:5000" as gw
 
-  node "Gateway" <<YARP · .NET>> as gw {
-    artifact "Gateway.dll" as gwa
-  }
+  ' Administrador: usuarios, tenants, planes y suscripciones.
+  component "Administrador\n:5101" as admin
 
-  node "Identidad" <<.NET · Kestrel>> as identidad {
-    artifact "Identity.Api.dll" as ida
-  }
+  ' Servicios de negocio: cada uno trabaja con la base del tenant de la petición.
+  component "Cuentas\n:5102" as cuentas
+  component "Movimientos\n:5103" as mov
+  component "Presupuestos\n:5104" as pres
 
-  node "Tenants" <<.NET · Kestrel>> as tenants {
-    artifact "Tenants.Api.dll" as tena
-  }
+  node "PostgreSQL" {
+    ' Una sola base global para el administrador.
+    database "tuki_admin" as dbadmin
 
-  node "Contabilidad" <<.NET · Kestrel>> as contab {
-    artifact "Accounting.Api.dll" as cona
-  }
-
-  node "Suscripciones" <<.NET · Kestrel>> as subs #F2F2F2;line.dashed {
-    artifact "Subscriptions.Api.dll" as suba
-  }
-
-  node "Servidor PostgreSQL" <<puerto 5432>> as pg {
-    database "identity_db" as idb
-    database "tenants_db\n(catálogo)" as tdb
-    database "tenant_A" as ta
-    database "tenant_B" as tb
-    database "subscriptions_db" as sdb #F2F2F2;line.dashed
+    ' Estas tres se crean una vez por cada tenant (ej. tuki_cuentas_12).
+    database "tuki_cuentas_{tenantId}" as dbcuentas
+    database "tuki_movimientos_{tenantId}" as dbmov
+    database "tuki_presupuestos_{tenantId}" as dbpres
   }
 }
 
-' El cliente solo conoce el Gateway
-app --> gw : HTTP :5000
+' Entrada: la app habla solo con el Gateway.
+app --> gw : HTTPS + JWT
 
-' El Gateway reparte las peticiones
-gw --> identidad : HTTP :5101\n(login y registro)
-gw --> contab : HTTP :5103\n(con X-Tenant-Id)
-gw -[dashed]-> subs : HTTP :5104
+' El Gateway reenvía la petición y agrega X-Tenant-Id en las rutas de negocio.
+gw --> admin : HTTPS\n(acceso, planes, suscripciones)
+gw --> cuentas : HTTPS + X-Tenant-Id
+gw --> mov : HTTPS + X-Tenant-Id
+gw --> pres : HTTPS + X-Tenant-Id
 
-' Los servicios se hablan con HttpClient, nunca comparten bases
-identidad --> tenants : HttpClient\nHTTP :5102\ncrear tenant
-tenants --> contab : HttpClient\npreparar base
-contab --> tenants : HttpClient\nubicar base
+' Al registrar un usuario nuevo, el Administrador pide a cada servicio
+' que cree su propia base y aplique sus migraciones.
+admin ..> cuentas : HTTPS\n(crear base del tenant)
+admin ..> mov : HTTPS\n(crear base del tenant)
+admin ..> pres : HTTPS\n(crear base del tenant)
 
-' Cada servicio usa solo su propia base
-identidad --> idb : SQL
-tenants --> tdb : SQL
-contab --> ta : SQL
-contab --> tb : SQL
-subs -[dashed]-> sdb : SQL
+' Entre servicios solo viajan identificadores; los datos se piden por API.
+mov --> cuentas : consulta cuentas\ny categorías
+pres --> mov : consulta gasto
 
-note bottom of gw
-  Lee el tenant del token
-  y pone el header X-Tenant-Id.
-end note
-
-note bottom of pg
-  Los nombres reales de las bases de tenant
-  se derivan de su id: tenant_<id>.
-end note
+' Cada servicio es dueño de su base y ningún otro la toca.
+' Todos se conectan a PostgreSQL por el puerto 5432.
+admin --> dbadmin : 5432
+cuentas --> dbcuentas : 5432
+mov --> dbmov : 5432
+pres --> dbpres : 5432
 
 @enduml
