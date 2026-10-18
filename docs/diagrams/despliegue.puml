@@ -1,0 +1,82 @@
+@startuml despliegue
+' docs/diagramas/despliegue.puml
+' Despliegue local del backend: todo corre en una sola máquina, sin Docker, Kubernetes ni nube.
+' Cada servicio es un proceso .NET y todas las bases viven en un mismo servidor PostgreSQL.
+' Las líneas punteadas son piezas que se diseñan pero no se implementan en la beta.
+
+title Tuki: despliegue local
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam node {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+}
+
+node "Celular o emulador" as celular {
+  artifact "App móvil\nReact Native" as app
+}
+
+node "Computador local (localhost)" as pc {
+
+  node "Gateway" <<YARP · .NET>> as gw {
+    artifact "Gateway.dll" as gwa
+  }
+
+  node "Identidad" <<.NET · Kestrel>> as identidad {
+    artifact "Identity.Api.dll" as ida
+  }
+
+  node "Tenants" <<.NET · Kestrel>> as tenants {
+    artifact "Tenants.Api.dll" as tena
+  }
+
+  node "Contabilidad" <<.NET · Kestrel>> as contab {
+    artifact "Accounting.Api.dll" as cona
+  }
+
+  node "Suscripciones" <<.NET · Kestrel>> as subs #F2F2F2;line.dashed {
+    artifact "Subscriptions.Api.dll" as suba
+  }
+
+  node "Servidor PostgreSQL" <<puerto 5432>> as pg {
+    database "identity_db" as idb
+    database "tenants_db\n(catálogo)" as tdb
+    database "tenant_A" as ta
+    database "tenant_B" as tb
+    database "subscriptions_db" as sdb #F2F2F2;line.dashed
+  }
+}
+
+' El cliente solo conoce el Gateway
+app --> gw : HTTP :5000
+
+' El Gateway reparte las peticiones
+gw --> identidad : HTTP :5101\n(login y registro)
+gw --> contab : HTTP :5103\n(con X-Tenant-Id)
+gw -[dashed]-> subs : HTTP :5104
+
+' Los servicios se hablan con HttpClient, nunca comparten bases
+identidad --> tenants : HttpClient\nHTTP :5102\ncrear tenant
+tenants --> contab : HttpClient\npreparar base
+contab --> tenants : HttpClient\nubicar base
+
+' Cada servicio usa solo su propia base
+identidad --> idb : SQL
+tenants --> tdb : SQL
+contab --> ta : SQL
+contab --> tb : SQL
+subs -[dashed]-> sdb : SQL
+
+note bottom of gw
+  Lee el tenant del token
+  y pone el header X-Tenant-Id.
+end note
+
+note bottom of pg
+  Los nombres reales de las bases de tenant
+  se derivan de su id: tenant_<id>.
+end note
+
+@enduml
