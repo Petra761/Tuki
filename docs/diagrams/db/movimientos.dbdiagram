@@ -1,0 +1,46 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "transactions",
+        "schemaName": "public",
+        "x": 353.5849056603774,
+        "y": -48.75471698113208
+      },
+      {
+        "name": "transaction_lines",
+        "schemaName": "public",
+        "x": 8.490566037735846,
+        "y": 359.5094339622641
+      },
+      {
+        "name": "shortcuts",
+        "schemaName": "public",
+        "x": 8.490566037735839,
+        "y": -34.792452830188665
+      },
+      {
+        "name": "tags",
+        "schemaName": "public",
+        "x": 345.3962264150943,
+        "y": 463.39622641509425
+      },
+      {
+        "name": "transaction_tags",
+        "schemaName": "public",
+        "x": 362.520784198113,
+        "y": 243.88679245283015
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": []
+  },
+  "views": {}
+}

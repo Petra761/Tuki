@@ -1,0 +1,105 @@
+// Base de datos del microservicio de Movimientos: una base por tenant (modelo Silo).
+// Su nombre sigue el patrón tuki_movimientos_{tenantId} (ej. tuki_movimientos_12). Cada tenant
+// recibe su propia copia, creada y migrada por este servicio cuando el administrador se lo pide.
+// Por esa razón ninguna tabla lleva tenant_id ni user_id: toda la base pertenece a un
+// solo tenant y esa columna sería redundante.
+// Movimientos es dueño de las transacciones, sus líneas, los atajos y los marcadores.
+// Las cuentas y las categorías viven en el servicio Cuentas, en otra base, así que aquí
+// account_id y category_id son identificadores sin clave foránea (se ven sin línea en el
+// diagrama). Su existencia se valida por API al guardar. Las relaciones que sí se dibujan
+// son las de tablas de esta misma base.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+
+// Reglas que el dominio valida y que la migración puede reforzar con restricciones CHECK
+// (dbdiagram no las dibuja):
+//  - Un traslado tiene dos o más líneas, la suma de sus montos es 0 y no lleva categoría.
+//  - Un gasto tiene líneas con monto negativo y categoría; un ingreso, monto positivo y categoría.
+//  - Una apertura tiene una sola línea, sin categoría, y su monto puede ser positivo o negativo
+//    (una persona puede empezar debiendo o siendo deudora). Hay como máximo una por cuenta.
+//  - La categoría de una línea debe ser del mismo tipo que la transacción (gasto o ingreso).
+//    Como la categoría vive en Cuentas, este servicio le consulta su tipo antes de guardar.
+// Al eliminar una transacción se eliminan sus líneas y sus marcadores (cascada configurada en
+// EF Core). Las cuentas y categorías con movimientos no se borran: se archivan; para eso
+// Cuentas le pregunta a este servicio si tienen líneas.
+
+Enum transaction_type {
+  expense
+  income
+  transfer
+  opening
+}
+
+// La transacción es el evento completo. Sus datos propios viven aquí una sola vez;
+// el reparto entre cuentas y categorías vive en transaction_lines.
+Table transactions {
+  id Guid [pk]
+  type transaction_type [not null, note: 'Gasto, ingreso o traslado. Se decide con la pregunta: el usuario consumió algo?']
+  occurred_on DateOnly [not null, note: 'Fecha en que ocurrió el movimiento. Es una fecha sin hora porque el balance se agrupa por día y por mes']
+  description string [null, note: 'Opcional. Alimenta el autocompletado. MaxLength 200']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    occurred_on [note: 'Para el balance por período y los listados ordenados por fecha']
+    description [note: 'Para el autocompletado de descripciones ya usadas']
+  }
+}
+
+// Cada línea es un hecho atómico: un monto aplicado a una cuenta bajo una categoría.
+// El monto lleva signo y representa el cambio que sufre su cuenta, lo que permite
+// expresar gastos, ingresos y traslados con la misma estructura.
+// Ejemplo de traslado: Efectivo -40 y la cuenta de un amigo +40, sin categoría.
+// Este es el punto donde se cruzan cuentas y categorías: ambas se referencian solo por id.
+Table transaction_lines {
+  id Guid [pk]
+  transaction_id Guid [not null, ref: > transactions.id, note: 'Una transacción tiene una o más líneas (1 a N). Varias líneas permiten varias categorías o varias cuentas en un mismo movimiento']
+  account_id Guid [not null, note: 'Id de la cuenta o persona afectada, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. No se borra una cuenta con líneas: se archiva']
+  category_id Guid [null, note: 'Id de la categoría, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. Nulo en los traslados, porque nadie consumió nada. No se borra una categoría con líneas: se archiva']
+  amount decimal [not null, note: 'Con signo: negativo resta de la cuenta y positivo suma. Precisión (18,2)']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    transaction_id
+    account_id [note: 'Para calcular el saldo de una cuenta']
+    category_id [note: 'Para el gasto por categoría y los presupuestos']
+  }
+}
+
+// Un atajo guarda los datos de un gasto rutinario para registrarlo con un solo toque.
+// Al usarlo se crea una transacción normal con una línea; el atajo no se vincula a ella,
+// porque editar el atajo después no debe alterar movimientos ya registrados.
+Table shortcuts {
+  id Guid [pk]
+  name string [not null, note: 'Por ejemplo Licuado. MaxLength 100']
+  amount decimal [not null, note: 'Monto positivo; el signo lo decide el dominio al crear el gasto. Precisión (18,2)']
+  category_id Guid [not null, note: 'Id de la categoría del gasto que se creará, en el servicio Cuentas. Sin clave foránea: se valida por API']
+  account_id Guid [not null, note: 'Id de la cuenta de la que sale el dinero, en el servicio Cuentas. Sin clave foránea: se valida por API']
+  sort_order int [not null, note: 'Orden en que se muestran en la pantalla principal']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+// Marcadores o etiquetas libres, reutilizables en muchas transacciones.
+Table tags {
+  id Guid [pk]
+  name string [unique, not null, note: 'MaxLength 50']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+// Tabla intermedia de la relación muchos a muchos entre transacciones y marcadores.
+// Es una relación binaria pura, sin atributos propios, y por eso no admite más
+// descomposición. Sus filas solo se crean o se eliminan, nunca se editan.
+Table transaction_tags {
+  transaction_id Guid [not null, ref: > transactions.id]
+  tag_id Guid [not null, ref: > tags.id, note: 'No se borra un marcador en uso: se archiva']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    (transaction_id, tag_id) [pk, note: 'Clave compuesta: impide asignar dos veces el mismo marcador a una transacción']
+    tag_id [note: 'Para listar las transacciones de un marcador']
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "account_types",
+        "schemaName": "public",
+        "x": -8,
+        "y": 358
+      },
+      {
+        "name": "accounts",
+        "schemaName": "public",
+        "x": 314.63916015625,
+        "y": 326
+      },
+      {
+        "name": "categories",
+        "schemaName": "public",
+        "x": 87,
+        "y": 52
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": []
+  },
+  "views": {}
+}

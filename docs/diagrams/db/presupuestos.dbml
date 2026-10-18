@@ -1,0 +1,39 @@
+// Base de datos del microservicio de Presupuestos: una base por tenant (modelo Silo).
+// Su nombre sigue el patrón tuki_presupuestos_{tenantId} (ej. tuki_presupuestos_12). Cada tenant
+// recibe su propia copia, creada y migrada por este servicio cuando el administrador se lo pide.
+// Por esa razón ninguna tabla lleva tenant_id ni user_id: toda la base pertenece a un
+// solo tenant y esa columna sería redundante.
+// Presupuestos solo es dueño de los límites de gasto. La categoría vive en el servicio Cuentas
+// y los gastos viven en el servicio Movimientos, así que aquí category_id es un identificador
+// sin clave foránea (no se dibuja ninguna relación). Su existencia se valida por API al guardar.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+
+// Reglas que el dominio valida (dbdiagram no las dibuja):
+//  - El límite del presupuesto es positivo.
+//  - Un solo presupuesto por categoría y período.
+//  - Solo puede existir un presupuesto del gasto total por período, es decir, con category_id nulo.
+// Cuando una categoría deja de existir en la práctica porque se archiva, su presupuesto
+// también se archiva desde el dominio, sin borrarlo.
+
+Enum budget_period {
+  monthly
+}
+
+// Un presupuesto es un límite de gasto por período. Lo gastado no se almacena: se calcula
+// pidiendo a Movimientos la suma de las líneas de la categoría en el período, igual que los
+// saldos, y así no puede desactualizarse.
+// Si el presupuesto es de una categoría raíz, suma también sus subcategorías; para saber cuáles
+// son, Presupuestos consulta a Cuentas el árbol de esa categoría.
+Table budgets {
+  id Guid [pk]
+  category_id Guid [null, note: 'Id de la categoría, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. Nulo significa presupuesto del gasto total del período']
+  amount decimal [not null, note: 'Límite de gasto, positivo. Precisión (18,2)']
+  period budget_period [not null, note: 'Por ahora solo mensual; el enum permite agregar otros períodos']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    (category_id, period) [unique, note: 'Un solo presupuesto por categoría y período. PostgreSQL permite varios nulos en un índice único, por lo que el límite del presupuesto total se valida en el dominio']
+  }
+}

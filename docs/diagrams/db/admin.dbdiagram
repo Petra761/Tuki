@@ -1,0 +1,211 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "users",
+        "schemaName": "public",
+        "x": 357.79941278594765,
+        "y": -239.56241191789218
+      },
+      {
+        "name": "refresh_tokens",
+        "schemaName": "public",
+        "x": 21.39585758782676,
+        "y": -296.0728087979983
+      },
+      {
+        "name": "verification_tokens",
+        "schemaName": "public",
+        "x": 351.3436587265114,
+        "y": -545.6038768892975
+      },
+      {
+        "name": "oauth_accounts",
+        "schemaName": "public",
+        "x": 794.3122536254085,
+        "y": -631.8849909364789
+      },
+      {
+        "name": "tenants",
+        "schemaName": "public",
+        "x": 772.4372612847225,
+        "y": 9.791939848856373
+      },
+      {
+        "name": "provisioning_events",
+        "schemaName": "public",
+        "x": 787.4694801879085,
+        "y": -336.17696142258984
+      },
+      {
+        "name": "plans",
+        "schemaName": "public",
+        "x": 26.583328227124166,
+        "y": 64.45844311683015
+      },
+      {
+        "name": "plan_features",
+        "schemaName": "public",
+        "x": -33.291623263888894,
+        "y": 377.0939702052697
+      },
+      {
+        "name": "subscriptions",
+        "schemaName": "public",
+        "x": 358.91660028594765,
+        "y": 126.23964907577613
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "tenant_id"
+        ],
+        "firstTableName": "users",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tenants",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "user_id"
+        ],
+        "firstTableName": "refresh_tokens",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "users",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "user_id"
+        ],
+        "firstTableName": "verification_tokens",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "users",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "user_id"
+        ],
+        "firstTableName": "oauth_accounts",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "users",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "tenant_id"
+        ],
+        "firstTableName": "provisioning_events",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tenants",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "plan_id"
+        ],
+        "firstTableName": "plan_features",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "plans",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": [
+          {
+            "x": 304.0935821333742,
+            "y": 457.0939702052697
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "user_id"
+        ],
+        "firstTableName": "subscriptions",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "users",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "plan_id"
+        ],
+        "firstTableName": "subscriptions",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "plans",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "tenant_id"
+        ],
+        "firstTableName": "subscriptions",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "tenants",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

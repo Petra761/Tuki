@@ -1,0 +1,157 @@
+// =====================================================================
+// Base del administrador: tuki_admin
+// Es la única base global de Tuki: reúne acceso, tenants y suscripciones.
+// Las bases de negocio (cuentas, movimientos y presupuestos) son otras,
+// una por tenant, y no aparecen aquí.
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// ACCESO
+// ---------------------------------------------------------------------
+
+// Persona que usa Tuki. Cada usuario pertenece a un único tenant porque
+// decidimos que un tenant es una sola persona.
+Table users {
+  id Guid [pk]
+  tenant_id int [not null, unique] // unique: un usuario, un tenant
+  email string [not null, unique]
+  display_name string [not null]
+  // Vacío cuando la persona solo entra con Google.
+  password_hash string
+  // Se puede usar la cuenta sin verificar el correo, pero es obligatorio
+  // para contratar una suscripción.
+  email_verified bool [not null]
+  // Control del bloqueo por intentos fallidos de inicio de sesión.
+  failed_login_attempts int [not null]
+  locked_until DateTimeOffset // vacío si la cuenta no está bloqueada
+  created_at DateTimeOffset [not null]
+}
+
+// Permite renovar la sesión sin pedir la contraseña otra vez.
+// Se guarda el hash para que un robo de la base no entregue sesiones válidas.
+Table refresh_tokens {
+  id Guid [pk]
+  user_id Guid [not null]
+  token_hash string [not null]
+  expires_at DateTimeOffset [not null]
+  revoked_at DateTimeOffset // se llena al cerrar sesión
+  created_at DateTimeOffset [not null]
+}
+
+// Códigos de un solo uso que se envían por correo.
+Table verification_tokens {
+  id Guid [pk]
+  user_id Guid [not null]
+  // Para qué sirve el código: EmailConfirmation o PasswordReset.
+  purpose string [not null]
+  code_hash string [not null]
+  expires_at DateTimeOffset [not null]
+  used_at DateTimeOffset // se llena al usarse, para que no se reutilice
+  created_at DateTimeOffset [not null]
+}
+
+// Vincula al usuario con su cuenta de Google u otro proveedor.
+Table oauth_accounts {
+  id Guid [pk]
+  user_id Guid [not null]
+  provider string [not null] // por ahora solo Google
+  provider_user_id string [not null] // identificador que da el proveedor
+
+  indexes {
+    // La misma cuenta de Google no puede vincularse a dos usuarios.
+    (provider, provider_user_id) [unique]
+  }
+}
+
+// ---------------------------------------------------------------------
+// TENANTS
+// ---------------------------------------------------------------------
+
+// Un cliente de Tuki. Su id numérico forma el nombre de sus bases:
+// tuki_cuentas_12, tuki_movimientos_12, tuki_presupuestos_12 (tenant 12).
+// Los nombres no se guardan: se derivan del proyecto, el servicio y este id.
+Table tenants {
+  id int [pk, increment]
+  // Provisioning: se están creando sus bases.
+  // Active: las tres bases existen y están migradas.
+  // Failed: alguna creación falló; se puede reintentar.
+  status string [not null]
+  created_at DateTimeOffset [not null]
+}
+
+// Bitácora de la creación de bases. Hay una fila por tenant y por
+// servicio, así se sabe cuál falló y se reintenta solo esa.
+Table provisioning_events {
+  id int [pk, increment]
+  tenant_id int [not null]
+  // Servicio al que se pidió crear la base: cuentas, movimientos o presupuestos.
+  service string [not null]
+  // Nombre de la base tal como se creó, solo como registro histórico.
+  database_name string [not null]
+  // Created, AlreadyExisted o Failed. AlreadyExisted evita duplicar bases.
+  result string [not null]
+  error string // mensaje del fallo, vacío si salió bien
+  created_at DateTimeOffset [not null]
+}
+
+// ---------------------------------------------------------------------
+// PLANES Y SUSCRIPCIONES
+// ---------------------------------------------------------------------
+
+// Planes que se ofrecen. No se borran: si un plan deja de ofrecerse se
+// pone is_available en falso, así las suscripciones viejas no se rompen.
+Table plans {
+  id Guid [pk]
+  name string [not null, unique]
+  price decimal [not null]
+  duration_days int [not null] // cuánto dura una suscripción de este plan
+  // Si es falso, el plan no admite nuevas suscripciones.
+  is_available bool [not null]
+  created_at DateTimeOffset [not null]
+}
+
+// Funciones que incluye cada plan. El código es texto para poder agregar
+// funciones nuevas sin cambiar la estructura.
+Table plan_features {
+  id Guid [pk]
+  plan_id Guid [not null]
+  feature_code string [not null]
+
+  indexes {
+    (plan_id, feature_code) [unique]
+  }
+}
+
+// Suscripción de un usuario a un plan. Se conserva el historial, por eso
+// un tenant puede tener varias a lo largo del tiempo.
+// Reglas: expires_at debe ser posterior a started_at, y la suscripción está
+// vigente desde started_at hasta antes de expires_at (en UTC).
+Table subscriptions {
+  id Guid [pk]
+  user_id Guid [not null]
+  plan_id Guid [not null]
+  tenant_id int [not null]
+  started_at DateTimeOffset [not null]
+  expires_at DateTimeOffset [not null]
+  // Enabled: habilitada. Cancelled: dada de baja antes de vencer.
+  // "Vencida" no se guarda: se calcula comparando la fecha actual con expires_at.
+  status string [not null] 
+
+  indexes {
+    user_id
+    tenant_id
+  }
+}
+
+// ---------------------------------------------------------------------
+// RELACIONES (todas dentro de esta misma base)
+// ---------------------------------------------------------------------
+Ref: users.tenant_id - tenants.id
+Ref: refresh_tokens.user_id > users.id
+Ref: verification_tokens.user_id > users.id
+Ref: oauth_accounts.user_id > users.id
+Ref: provisioning_events.tenant_id > tenants.id
+Ref: plan_features.plan_id > plans.id
+Ref: subscriptions.user_id > users.id
+Ref: subscriptions.plan_id > plans.id
+Ref: subscriptions.tenant_id > tenants.id

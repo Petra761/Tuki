@@ -1,0 +1,47 @@
+// =====================================================================
+// Base del servicio Cuentas: tuki_cuentas_{tenantId}
+// Se crea una por tenant, así que ninguna tabla lleva tenant_id: la base
+// completa ya pertenece a una sola persona.
+// Cuentas es dueño de las cuentas, las personas y las categorías. Otros
+// servicios las referencian solo por id y piden los datos a la API.
+// =====================================================================
+
+// Tipos de cuenta (banco, cuenta digital, persona, etc.). Es una tabla y no
+// un enum porque la app debe ser muy personalizable y se podrán agregar tipos.
+Table account_types {
+  id Guid [pk]
+  name string [not null]
+  // Las personas (deudores y acreedores) son cuentas de tipo Persona.
+  // Su saldo se lee distinto: positivo = te deben, negativo = les debes.
+  is_person bool [not null]
+  // Tipos que trae la app. El usuario puede agregar otros propios.
+  is_preset bool [not null]
+}
+
+// Cuentas propias (efectivo, banco, Binance) y personas, en una sola tabla.
+// "Efectivo" se crea al inicio. El saldo no se guarda: se calcula con los
+// movimientos. El saldo inicial también es un movimiento (de apertura).
+Table accounts {
+  id Guid [pk]
+  account_type_id Guid [not null]
+  name string [not null]
+  // Se archiva en lugar de borrar para no perder el historial de movimientos.
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+}
+
+// Categorías y subcategorías. parent_id vacío = categoría principal.
+// Un movimiento puede registrarse en una subcategoría o directamente en la
+// categoría si esta no tiene subcategorías.
+Table categories {
+  id Guid [pk]
+  parent_id Guid // autorreferencia: la categoría a la que pertenece
+  name string [not null]
+  icon string [not null] // nombre del icono que se muestra en la app
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+}
+
+// Relaciones (dentro de esta misma base)
+Ref: accounts.account_type_id > account_types.id
+Ref: categories.parent_id > categories.id
