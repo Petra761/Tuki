@@ -1,0 +1,77 @@
+@startuml casos-uso-movimientos
+' docs/diagramas/casos-de-uso/04-movimientos.puml
+' Casos de uso para registrar y administrar el dinero que entra, sale o se mueve.
+' Los casos en gris pertenecen al diagrama 3 (cuentas y personalización) y se repiten aquí
+' solo para mostrar que la persona puede usarlos sin salir de la pantalla de registro.
+' include: paso que la persona realiza siempre al pasar por ese caso.
+' extend: variante opcional que la persona elige en un punto del caso base.
+' generalización (flecha con triángulo): el caso hijo es una forma particular del caso padre.
+
+title Casos de uso: movimientos y atajos
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+  BackgroundColor<<diagrama 3>> #EEF2F7
+  BorderColor<<diagrama 3>> #A0AEC0
+}
+
+actor "Usuario" as U
+
+rectangle "Tuki – Movimientos y atajos" {
+  usecase "CU-MOV-01\nRegistrar gasto" as UC1
+  usecase "CU-MOV-02\nRegistrar ingreso" as UC2
+  usecase "CU-MOV-03\nRegistrar traslado" as UC3
+  usecase "CU-MOV-04\nAbonar o cobrar una deuda" as UC4
+  usecase "CU-MOV-05\nDividir en varias\ncategorías o cuentas" as UC5
+  usecase "CU-MOV-06\nAutocompletar al registrar" as UC6
+  usecase "CU-MOV-07\nVer historial de movimientos" as UC7
+  usecase "CU-MOV-08\nGestionar movimientos\n(editar o eliminar)" as UC8
+  usecase "CU-MOV-09\nRegistrar con un atajo" as UC9
+  usecase "CU-MOV-10\nDeshacer o editar el monto\ntras usar un atajo" as UC10
+
+  usecase "CU-PER-04\nGestionar categorías" as R1 <<diagrama 3>>
+  usecase "CU-PER-06\nGestionar marcadores" as R2 <<diagrama 3>>
+  usecase "CU-PER-05\nGestionar atajos" as R3 <<diagrama 3>>
+}
+
+U --> UC1
+U --> UC2
+U --> UC3
+U --> UC4
+U --> UC7
+U --> UC8
+U --> UC9
+
+' Abonar o cobrar una deuda es un traslado entre la cuenta propia y una persona
+UC4 --|> UC3
+
+' Registrar con un atajo es una forma rápida de registrar un gasto
+UC9 --|> UC1
+
+' Variantes opcionales al registrar un gasto o un ingreso
+UC5 ..> UC1 : <<extend>>
+UC5 ..> UC2 : <<extend>>
+UC6 ..> UC1 : <<extend>>
+UC6 ..> UC2 : <<extend>>
+
+' Crear una categoría o un marcador al vuelo, sin salir del registro
+R1 ..> UC1 : <<extend>>
+R1 ..> UC2 : <<extend>>
+R2 ..> UC1 : <<extend>>
+R2 ..> UC2 : <<extend>>
+
+' Después de registrar un gasto, la persona puede guardarlo como atajo
+R3 ..> UC1 : <<extend>>
+note on link : Si quiere repetirlo,\nlo guarda como atajo
+
+' Para editar o eliminar un movimiento, primero hay que encontrarlo en el historial
+UC8 ..> UC7 : <<include>>
+
+' Justo después de usar un atajo, aparece el aviso para deshacer o editar el monto
+UC10 ..> UC9 : <<extend>>
+
+@enduml

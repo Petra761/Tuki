@@ -1,0 +1,50 @@
+@startuml casos-uso-cuentas-personalizacion
+' docs/diagramas/casos-de-uso/03-cuentas-personalizacion.puml
+' Casos de uso para armar y personalizar la app: cuentas, categorías, atajos y marcadores.
+' Las personas (a quienes se presta o se debe dinero) son un tipo de cuenta, por eso no
+' tienen un caso de uso propio: se gestionan dentro de "Gestionar cuentas".
+' include: paso que la persona realiza siempre al pasar por ese caso.
+' extend: variante opcional que la persona elige en un punto del caso base.
+
+title Casos de uso: cuentas y personalización
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+}
+
+actor "Usuario" as U
+
+rectangle "Tuki – Cuentas y personalización" {
+  usecase "CU-PER-01\nGestionar cuentas\n(incluye personas)" as UC1
+  usecase "CU-PER-02\nDefinir saldo inicial" as UC2
+  usecase "CU-PER-03\nGestionar tipos de cuenta" as UC3
+  usecase "CU-PER-04\nGestionar categorías\ny subcategorías" as UC4
+  usecase "CU-PER-05\nGestionar atajos" as UC5
+  usecase "CU-PER-06\nGestionar marcadores" as UC6
+  usecase "CU-PER-07\nPersonalizar la app\nen el primer uso" as UC7
+}
+
+U --> UC1
+U --> UC3
+U --> UC4
+U --> UC5
+U --> UC6
+U --> UC7
+
+' Al crear una cuenta, definir cuánto dinero tiene (o debe) al empezar es opcional
+UC2 ..> UC1 : <<extend>>
+
+' Si ningún tipo de cuenta le sirve, la persona puede crear uno propio
+UC3 ..> UC1 : <<extend>>
+note on link : Si el tipo que necesita\nno existe, crea uno propio
+
+' El primer uso guiado recorre estos tres pasos
+UC7 ..> UC1 : <<include>>
+UC7 ..> UC4 : <<include>>
+UC7 ..> UC5 : <<include>>
+
+@enduml

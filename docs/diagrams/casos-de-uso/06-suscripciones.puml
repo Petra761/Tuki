@@ -1,0 +1,59 @@
+@startuml casos-uso-suscripciones
+' docs/diagramas/casos-de-uso/06-suscripciones.puml
+' Casos de uso de los planes Gratis y Premium. Este módulo se diseña pero no se
+' implementa en la beta.
+' Usuario Premium es una especialización del Usuario: puede hacer todo lo que hace
+' un Usuario y además cancelar su suscripción y usar las funciones premium.
+' El caso en gris pertenece al diagrama 1 (acceso y seguridad) y se repite aquí
+' porque el correo debe estar verificado para contratar un plan.
+' include: paso que la persona realiza siempre al pasar por ese caso.
+' extend: variante que ocurre solo en una situación concreta.
+' generalización (flecha con triángulo): el hijo es una forma particular del padre.
+
+title Casos de uso: suscripciones (diseño)
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+  BackgroundColor<<diagrama 1>> #EEF2F7
+  BorderColor<<diagrama 1>> #A0AEC0
+}
+
+actor "Usuario" as U
+actor "Usuario Premium" as P
+actor "Proveedor de pago\n(Google Play)" as PP
+
+rectangle "Tuki – Suscripciones" {
+  usecase "CU-SUS-01\nVer mi plan" as UC1
+  usecase "CU-SUS-02\nContratar Premium" as UC2
+  usecase "CU-SUS-03\nCancelar suscripción" as UC3
+  usecase "CU-SUS-04\nUsar una función premium" as UC4
+  usecase "CU-SUS-05\nPagar suscripción" as UC5
+
+  usecase "CU-AUT-06\nVerificar correo" as R1 <<diagrama 1>>
+}
+
+' Premium hereda todo lo que puede hacer un Usuario
+P --|> U
+
+U --> UC1
+U --> UC2
+U --> UC4
+P --> UC3
+
+' Contratar siempre termina en el pago, que se realiza con el proveedor
+UC2 ..> UC5 : <<include>>
+PP --> UC5
+
+' Sin correo verificado no se puede contratar
+R1 ..> UC2 : <<extend>>
+note on link : Solo si el correo\naún no está verificado
+
+' Al intentar usar una función premium sin tener Premium, se le ofrece contratarlo
+UC2 ..> UC4 : <<extend>>
+note on link : Solo si la persona\naún no tiene Premium
+
+@enduml

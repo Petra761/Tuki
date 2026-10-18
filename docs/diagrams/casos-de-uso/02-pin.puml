@@ -1,0 +1,45 @@
+@startuml casos-uso-pin
+' Casos de uso del PIN de bloqueo de la app.
+' El PIN existe solo en el dispositivo de la persona y protege la app al abrirla.
+' include: paso que la persona realiza siempre al pasar por ese caso.
+' extend: variante que ocurre solo en una situación concreta.
+
+title Casos de uso: PIN de bloqueo
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+}
+
+actor "Usuario" as U
+
+rectangle "Tuki – Acceso y seguridad" {
+  usecase "CU-AUT-11\nConfigurar PIN" as UC11
+  usecase "CU-AUT-12\nCambiar PIN" as UC12
+  usecase "CU-AUT-13\nQuitar PIN" as UC13
+  usecase "CU-AUT-14\nDesbloquear la app con PIN" as UC14
+  usecase "CU-AUT-15\nRestablecer PIN olvidado" as UC15
+  usecase "CU-AUT-16\nIngresar PIN actual" as UC16
+  usecase "CU-AUT-17\nBloqueo por intentos fallidos del PIN" as UC17
+}
+
+U --> UC11
+U --> UC12
+U --> UC13
+U --> UC14
+
+' Cambiar o quitar el PIN exige demostrar que se conoce el actual
+UC12 ..> UC16 : <<include>>
+UC13 ..> UC16 : <<include>>
+
+' Si la persona olvidó el PIN, vuelve a iniciar sesión con su contraseña
+UC15 ..> UC14 : <<extend>>
+
+' Tras varios intentos fallidos, la app se bloquea por un tiempo
+UC17 ..> UC14 : <<extend>>
+note on link : Tras 5 intentos fallidos,\nla app se bloquea 10 minutos
+
+@enduml

@@ -1,0 +1,46 @@
+@startuml casos-uso-seguimiento
+' docs/diagramas/casos-de-uso/05-seguimiento.puml
+' Casos de uso para saber cómo van las finanzas: resumen, filtros y presupuestos.
+' El resumen de la pantalla principal muestra el saldo total y por cuenta, las deudas
+' pendientes (las personas con saldo), el gasto del mes por categoría y el avance de
+' los presupuestos. Son vistas, no pasos que la persona deba realizar, por eso no se
+' dibujan como include.
+' El caso en gris pertenece al diagrama 4 (movimientos) y se repite aquí porque
+' la persona llega a él desde el resumen.
+' extend: variante opcional que la persona elige en un punto del caso base.
+
+title Casos de uso: seguimiento
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+  BackgroundColor<<diagrama 4>> #EEF2F7
+  BorderColor<<diagrama 4>> #A0AEC0
+}
+
+actor "Usuario" as U
+
+rectangle "Tuki – Seguimiento" {
+  usecase "CU-SEG-01\nVer resumen y métricas" as UC1
+  usecase "CU-SEG-02\nFiltrar resultados" as UC2
+  usecase "CU-SEG-03\nGestionar presupuestos" as UC3
+
+  usecase "CU-MOV-07\nVer historial de movimientos" as R1 <<diagrama 4>>
+}
+
+U --> UC1
+U --> UC3
+U --> R1
+
+' Filtrar sirve tanto para el resumen como para el historial
+UC2 ..> UC1 : <<extend>>
+UC2 ..> R1 : <<extend>>
+note on link : Filtra los resultados\nque la persona está viendo
+
+' Desde el resumen, al tocar una cuenta o una categoría, la persona ve sus movimientos
+R1 ..> UC1 : <<extend>>
+
+@enduml

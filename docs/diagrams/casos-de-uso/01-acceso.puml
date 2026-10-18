@@ -1,0 +1,54 @@
+@startuml casos-uso-acceso
+' Casos de uso del módulo de acceso y seguridad.
+' include: paso que la persona realiza siempre al pasar por ese caso.
+' extend: variante opcional que la persona elige en un punto del caso base.
+' Premium no aparece aquí porque este módulo es idéntico para ambos planes.
+
+title Casos de uso: acceso y seguridad
+
+left to right direction
+skinparam shadowing false
+skinparam ArrowColor #555555
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #4A5568
+}
+
+actor "Usuario" as U
+actor "Google" as G
+
+rectangle "Tuki – Acceso y seguridad" {
+  usecase "CU-AUT-01\nRegistrarse" as UC1
+  usecase "CU-AUT-02\nIniciar sesión" as UC2
+  usecase "CU-AUT-03\nCerrar sesión" as UC3
+  usecase "CU-AUT-04\nIniciar sesión con Google" as UC4
+  usecase "CU-AUT-05\nBloqueo por intentos fallidos" as UC5
+  usecase "CU-AUT-06\nVerificar correo" as UC6
+  usecase "CU-AUT-07\nRecuperar contraseña" as UC7
+  usecase "CU-AUT-08\nSolicitar código de recuperación" as UC8
+  usecase "CU-AUT-09\nConfirmar código del correo" as UC9
+  usecase "CU-AUT-10\nDefinir nueva contraseña" as UC10
+}
+
+U --> UC1
+U --> UC2
+U --> UC3
+U --> UC6
+U --> UC7
+
+' Entrar con Google es una forma alternativa de iniciar sesión
+UC4 ..> UC2 : <<extend>>
+G --> UC4
+
+' Tras varios intentos fallidos, la cuenta se bloquea por un tiempo
+UC5 ..> UC2 : <<extend>>
+
+' Verificar el correo es opcional para usar la app, pero obligatorio para contratar un plan
+UC6 ..> UC9 : <<include>>
+
+' Para recuperar la contraseña, la persona debe pasar por estos tres pasos
+UC7 ..> UC8 : <<include>>
+UC7 ..> UC9 : <<include>>
+UC7 ..> UC10 : <<include>>
+
+@enduml
