@@ -1,0 +1,186 @@
+// Base de datos del microservicio de Contabilidad: una base por tenant (modelo Silo).
+// Este esquema es idéntico para todos los tenants: cada uno recibe su propia copia en una
+// base distinta (tenant_<id>), creada y migrada desde las clases C# con EF Core.
+// Por esa razón ninguna tabla lleva tenant_id ni user_id: toda la base pertenece a un
+// solo tenant y esa columna sería redundante. Tampoco hay claves foráneas hacia otros
+// servicios; todas las relaciones son entre tablas de esta misma base.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+
+// Reglas que el dominio valida y que la migración puede reforzar con restricciones CHECK
+// (dbdiagram no las dibuja):
+//  - Un traslado tiene dos o más líneas, la suma de sus montos es 0 y no lleva categoría.
+//  - Un gasto tiene líneas con monto negativo y categoría; un ingreso, monto positivo y categoría.
+//  - Una apertura tiene una sola línea, sin categoría, y su monto puede ser positivo o negativo
+//    (una persona puede empezar debiendo o siendo deudora). Hay como máximo una por cuenta.
+//  - La categoría de una línea debe ser del mismo tipo que la transacción (gasto o ingreso).
+//  - Una categoría solo puede tener como padre a una categoría raíz (máximo dos niveles).
+//  - Solo una cuenta puede tener is_default en verdadero (índice único filtrado en la migración).
+//  - Siempre debe existir al menos un tipo de cuenta activo con is_person en verdadero,
+//    porque de él depende la sección de deudas.
+// Al eliminar una transacción se eliminan sus líneas y sus marcadores (cascada configurada en
+// EF Core). Las cuentas y categorías con movimientos no se borran: se archivan.
+
+Enum account_kind {
+  cash
+  bank_card
+  digital
+  other
+  person
+}
+
+Enum category_kind {
+  expense
+  income
+}
+
+Enum transaction_type {
+  expense
+  income
+  transfer
+  opening
+}
+
+Enum budget_period {
+  monthly
+}
+
+// Las cuentas propias y las personas (deudores y acreedores) comparten tabla porque se
+// comportan igual: ambas acumulan un saldo con signo a partir de las líneas de movimiento.
+// El saldo no se almacena ni tiene columna de saldo inicial: se calcula como la suma de las
+// líneas de la cuenta, y el saldo inicial es una transacción de tipo opening. Así existe
+// una sola fuente del saldo y no hay un dato derivado que pueda quedar desincronizado.
+Table accounts {
+  id Guid [pk, note: 'Lo genera el cliente, para dejar lista la futura sincronización offline']
+  account_type_id Guid [not null, ref: > account_types.id, note: 'Tipo de la cuenta. Para una persona, saldo positivo significa que le debe al usuario y negativo que el usuario le debe. No se borra un tipo en uso: se archiva']
+  name string [not null, note: 'Nombre visible, por ejemplo Efectivo, Binance o el nombre de un amigo. MaxLength 100']
+  currency_code string [not null, note: 'Fijo en BOB durante la beta. Se guarda ya para que agregar monedas no exija rehacer el modelo. MaxLength 3']
+  is_default bool [not null, note: 'Marca la cuenta Efectivo que existe desde el inicio']
+  is_archived bool [not null, note: 'Se archiva en lugar de borrar para no romper el historial de movimientos']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null, note: 'Fecha de modificación en cada registro, necesaria para sincronizar en el futuro']
+
+  indexes {
+    is_archived
+    account_type_id
+  }
+} 
+
+// Categorías y subcategorías en una sola tabla con autorreferencia, porque ambas tienen los
+// mismos atributos. La profundidad máxima de dos niveles se valida en el dominio.
+Table categories {
+  id Guid [pk]
+  parent_id Guid [null, ref: > categories.id, note: 'Nulo en una categoría raíz; en una subcategoría apunta a su padre']
+  name string [not null, note: 'MaxLength 100']
+  kind category_kind [not null, note: 'Evita que una categoría de ingreso (Sueldo) aparezca al registrar un gasto']
+  is_archived bool [not null, note: 'Permite descartar el conjunto base predeterminado sin perder el historial']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    parent_id
+    (kind, is_archived) [note: 'Para listar rápido las categorías disponibles al registrar un movimiento']
+  }
+}
+
+// La transacción es el evento completo. Sus datos propios viven aquí una sola vez;
+// el reparto entre cuentas y categorías vive en transaction_lines.
+Table transactions {
+  id Guid [pk]
+  type transaction_type [not null, note: 'Gasto, ingreso o traslado. Se decide con la pregunta: el usuario consumió algo?']
+  occurred_on DateOnly [not null, note: 'Fecha en que ocurrió el movimiento. Es una fecha sin hora porque el balance se agrupa por día y por mes']
+  description string [null, note: 'Opcional. Alimenta el autocompletado. MaxLength 200']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    occurred_on [note: 'Para el balance por período y los listados ordenados por fecha']
+    description [note: 'Para el autocompletado de descripciones ya usadas']
+  }
+}
+
+// Cada línea es un hecho atómico: un monto aplicado a una cuenta bajo una categoría.
+// El monto lleva signo y representa el cambio que sufre su cuenta, lo que permite
+// expresar gastos, ingresos y traslados con la misma estructura.
+// Ejemplo de traslado: Efectivo -40 y la cuenta de un amigo +40, sin categoría.
+Table transaction_lines {
+  id Guid [pk]
+  transaction_id Guid [not null, ref: > transactions.id, note: 'Una transacción tiene una o más líneas (1 a N). Varias líneas permiten varias categorías o varias cuentas en un mismo movimiento']
+  account_id Guid [not null, ref: > accounts.id, note: 'Cuenta propia o persona afectada. No se borra una cuenta con líneas: se archiva']
+  category_id Guid [null, ref: > categories.id, note: 'Nulo en los traslados, porque nadie consumió nada. No se borra una categoría con líneas: se archiva']
+  amount decimal [not null, note: 'Con signo: negativo resta de la cuenta y positivo suma. Precisión (18,2)']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    transaction_id
+    account_id [note: 'Para calcular el saldo de una cuenta']
+    category_id [note: 'Para el gasto por categoría y los presupuestos']
+  }
+}
+
+// Un atajo guarda los datos de un gasto rutinario para registrarlo con un solo toque.
+// Al usarlo se crea una transacción normal con una línea; el atajo no se vincula a ella,
+// porque editar el atajo después no debe alterar movimientos ya registrados.
+Table shortcuts {
+  id Guid [pk]
+  name string [not null, note: 'Por ejemplo Licuado. MaxLength 100']
+  amount decimal [not null, note: 'Monto positivo; el signo lo decide el dominio al crear el gasto. Precisión (18,2)']
+  category_id Guid [not null, ref: > categories.id, note: 'Categoría del gasto que se creará']
+  account_id Guid [not null, ref: > accounts.id, note: 'Cuenta de la que sale el dinero']
+  sort_order int [not null, note: 'Orden en que se muestran en la pantalla principal']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+// Un presupuesto es un límite de gasto por período. Lo gastado no se almacena: se calcula
+// sumando las líneas del período, igual que los saldos, y así no puede desactualizarse.
+// Si el presupuesto es de una categoría raíz, suma también sus subcategorías.
+Table budgets {
+  id Guid [pk]
+  category_id Guid [null, ref: > categories.id, note: 'Nulo significa presupuesto del gasto total del período']
+  amount decimal [not null, note: 'Límite de gasto, positivo. Precisión (18,2)']
+  period budget_period [not null, note: 'Por ahora solo mensual; el enum permite agregar otros períodos']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    (category_id, period) [unique, note: 'Un solo presupuesto por categoría y período. PostgreSQL permite varios nulos en un índice único, por lo que el límite del presupuesto total se valida en el dominio']
+  }
+}
+
+// Marcadores o etiquetas libres, reutilizables en muchas transacciones.
+Table tags {
+  id Guid [pk]
+  name string [unique, not null, note: 'MaxLength 50']
+  is_archived bool [not null]
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+// Tabla intermedia de la relación muchos a muchos entre transacciones y marcadores.
+// Es una relación binaria pura, sin atributos propios, y por eso no admite más
+// descomposición. Sus filas solo se crean o se eliminan, nunca se editan.
+Table transaction_tags {
+  transaction_id Guid [not null, ref: > transactions.id]
+  tag_id Guid [not null, ref: > tags.id, note: 'No se borra un marcador en uso: se archiva']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    (transaction_id, tag_id) [pk, note: 'Clave compuesta: impide asignar dos veces el mismo marcador a una transacción']
+    tag_id [note: 'Para listar las transacciones de un marcador']
+  }
+}
+
+// Tipos de cuenta como tabla y no como enum, porque la app es personalizable: el usuario
+// puede crear tipos propios (por ejemplo Billetera cripto) y archivar los predeterminados.
+// Al crear la base se siembran Efectivo, Tarjeta bancaria, Cuenta digital, Otro y Persona.
+Table account_types {
+  id Guid [pk]
+  name string [unique, not null, note: 'MaxLength 100']
+  is_person bool [not null, note: 'Indica que las cuentas de este tipo son personas: su saldo con signo representa quién le debe a quién y aparecen en la sección de deudas. Se usa una marca y no el nombre del tipo, para que renombrarlo no rompa la lógica']
+  is_archived bool [not null, note: 'Permite descartar los tipos predeterminados sin perder el historial']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}

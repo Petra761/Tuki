@@ -1,0 +1,44 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "tenants",
+        "schemaName": "public",
+        "x": 155.79796134599673,
+        "y": -27.629359426062052
+      },
+      {
+        "name": "provisioning_events",
+        "schemaName": "public",
+        "x": 508.65003574346406,
+        "y": -4.706385314542501
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "tenants",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "tenant_id"
+        ],
+        "secondTableName": "provisioning_events",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

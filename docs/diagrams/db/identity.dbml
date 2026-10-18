@@ -1,0 +1,68 @@
+// Base de datos del microservicio de Identidad (identity_db).
+// Este servicio es el único propietario de los usuarios, sus credenciales,
+// sus sesiones y los vínculos con proveedores externos como Google.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar
+// las clases C# (User se convierte en la tabla users, PasswordHash en password_hash).
+
+// Los tokens de verificación tienen dos usos con el mismo ciclo de vida
+// (se emiten, expiran y se consumen una vez). Un enum evita una tabla por cada uso.
+Enum verification_token_type {
+  email_verification
+  password_reset
+}
+
+Table users {
+  id Guid [pk, note: 'Guid y no entero: viaja a otros servicios y dentro del token, y no debe ser predecible']
+  email string [unique, not null, note: 'Identificador de inicio de sesión. MaxLength 255']
+  password_hash string [null, note: 'Nulo cuando la persona solo entra con Google. Nunca se guarda la contraseña en claro']
+  name string [null, note: 'Nombre para mostrar. No es único ni sirve para iniciar sesión. MaxLength 100']
+  email_verified_at DateTimeOffset [null, note: 'Nulo significa correo sin verificar. Una fecha evita un booleano más su fecha']
+  is_active bool [not null, note: 'Permite deshabilitar el acceso sin borrar al usuario ni sus datos']
+  tenant_id Guid [unique, not null, note: 'Referencia al tenant en tenants_db. Sin FK porque es otra base: entre servicios solo se comparten identificadores. Identidad lo genera y lo envía al servicio de Tenants por API. Es el dato que se coloca en el token']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+Table refresh_tokens {
+  id Guid [pk]
+  user_id Guid [not null, ref: > users.id, note: 'Un usuario puede tener varios tokens a lo largo del tiempo. Al eliminar el usuario se eliminan en cascada (se configura en EF Core, no en este diagrama)']
+  token_hash string [unique, not null, note: 'Solo se guarda el hash: si la base se filtra, los tokens no sirven']
+  expires_at DateTimeOffset [not null]
+  revoked_at DateTimeOffset [null, note: 'Nulo significa vigente. Al iniciar sesión en otro dispositivo se revocan los anteriores (regla de un solo dispositivo)']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    user_id [note: 'Para revocar o consultar rápido todos los tokens de un usuario']
+  }
+}
+
+Table verification_tokens {
+  id Guid [pk]
+  user_id Guid [not null, ref: > users.id, note: 'Se elimina en cascada con el usuario (se configura en EF Core)']
+  token_hash string [unique, not null, note: 'Solo el hash, por la misma razón que en refresh_tokens']
+  type verification_token_type [not null, note: 'Distingue verificar el correo de restablecer la contraseña']
+  expires_at DateTimeOffset [not null, note: 'Cada tipo caduca en plazos distintos']
+  used_at DateTimeOffset [null, note: 'Nulo significa sin usar. Garantiza que el enlace sirva una sola vez']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    user_id
+  }
+}
+
+// Vive separada de users porque una persona puede vincular varios proveedores
+// (dependencia multivaluada). Dentro de users habría columnas repetidas o nulas.
+// No guarda tokens de Google: solo se necesita validar la identidad al entrar,
+// y guardar tokens ajenos añadiría riesgo sin beneficio.
+Table oauth_accounts {
+  id Guid [pk]
+  user_id Guid [not null, ref: > users.id, note: 'Se elimina en cascada con el usuario (se configura en EF Core)']
+  provider string [not null, note: 'Por ahora solo "Google". MaxLength 30']
+  provider_user_id string [not null, note: 'Identificador de la persona en el proveedor (el claim "sub" en Google). MaxLength 255']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    (provider, provider_user_id) [unique, note: 'Impide que la misma cuenta de Google se vincule a dos usuarios']
+    user_id
+  }
+}

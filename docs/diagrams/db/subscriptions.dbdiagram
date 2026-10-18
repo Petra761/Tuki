@@ -1,0 +1,34 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "plans",
+        "schemaName": "public",
+        "x": 588.7196346507355,
+        "y": 177.60840609681367
+      },
+      {
+        "name": "plan_features",
+        "schemaName": "public",
+        "x": 947.438987183415,
+        "y": 177.60840609681367
+      },
+      {
+        "name": "subscriptions",
+        "schemaName": "public",
+        "x": 202.0878804125817,
+        "y": 177.60840609681367
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": []
+  },
+  "views": {}
+}

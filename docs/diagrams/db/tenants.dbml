@@ -1,0 +1,54 @@
+// Base de datos del microservicio de Tenants (tenants_db): el catálogo de tenants.
+// Este servicio es el único propietario de qué espacios existen, en qué estado están
+// y cómo se llama la base física de cada uno. No guarda datos contables: esos viven en
+// la base propia de cada tenant (modelo Silo).
+// El servidor de PostgreSQL (host, puerto y credenciales) no se guarda aquí: es el mismo
+// para todos los tenants en el despliegue local y sale de la configuración del servicio.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+
+// Un tenant se crea en varios pasos (registro en Identidad, creación de su base,
+// migración del esquema). Los estados intermedios permiten saber en qué punto quedó
+// si algún paso falla, en lugar de tener solo "activo" o "inactivo".
+Enum tenant_status {
+  pending
+  provisioning
+  active
+  failed
+  suspended
+}
+
+Enum provisioning_event_type {
+  database_created
+  migration_applied
+  provisioning_failed
+}
+
+Table tenants {
+  id Guid [pk, note: 'No se autogenera aquí: lo crea Identidad (users.tenant_id) y llega por API. Así ambos servicios comparten el mismo identificador sin acoplar sus bases']
+  owner_user_id Guid [unique, not null, note: 'Usuario propietario en identity_db. Sin FK porque es otra base: entre servicios solo se comparten identificadores. Es único porque en esta versión un tenant pertenece a una sola persona']
+  database_name string [unique, not null, note: 'Nombre de la base física del tenant, derivado de su id (por ejemplo tenant_<id sin guiones>). Aunque se podría calcular, se guarda para que el catálogo sea la fuente explícita de dónde vive cada base. Lo escribe solo este servicio al crear el registro. Es único porque dos tenants no pueden compartir base. MaxLength 63, el límite de PostgreSQL']
+  status tenant_status [not null, note: 'Estado del ciclo de vida. Solo un tenant active puede recibir peticiones de Contabilidad']
+  last_migration string [null, note: 'Última migración de EF Core aplicada a la base del tenant. Es una copia de consulta rápida de __EFMigrationsHistory, que vive en cada base de tenant; permite detectar tenants desactualizados sin conectarse a cada una. Nulo mientras no se haya migrado. MaxLength 150']
+  migrated_at DateTimeOffset [null, note: 'Momento de la última migración aplicada']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    status [note: 'Para encontrar rápido los tenants fallidos o pendientes y reintentar su creación']
+  }
+}
+
+// Bitácora de lo ocurrido al crear y migrar cada base. El riesgo principal del proyecto
+// es mantener al día una base por usuario, y este historial permite ver qué tenants
+// fallaron y por qué, sin revisar archivos de log.
+Table provisioning_events {
+  id Guid [pk]
+  tenant_id Guid [not null, ref: > tenants.id, note: 'Un tenant acumula muchos eventos a lo largo del tiempo (1 a N). Ambas tablas están en tenants_db, por eso aquí sí hay clave foránea']
+  type provisioning_event_type [not null, note: 'Qué ocurrió. El resultado (éxito o fallo) se deduce del tipo, por eso no hay una columna de resultado aparte']
+  error_message string [null, note: 'Detalle del fallo. Solo se llena cuando type es provisioning_failed']
+  created_at DateTimeOffset [not null]
+
+  indexes {
+    tenant_id
+  }
+}

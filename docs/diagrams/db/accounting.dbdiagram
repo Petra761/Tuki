@@ -1,0 +1,252 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "accounts",
+        "schemaName": "public",
+        "x": 254.6210936630015,
+        "y": -127.29352083484574
+      },
+      {
+        "name": "categories",
+        "schemaName": "public",
+        "x": 355.7501910627933,
+        "y": 573.0967220685667
+      },
+      {
+        "name": "transactions",
+        "schemaName": "public",
+        "x": 341.8708814386739,
+        "y": 223.92934798747524
+      },
+      {
+        "name": "transaction_lines",
+        "schemaName": "public",
+        "x": 757.0403361359588,
+        "y": 220.86795192517093
+      },
+      {
+        "name": "shortcuts",
+        "schemaName": "public",
+        "x": 1220.8418395750602,
+        "y": 200.72834569474082
+      },
+      {
+        "name": "budgets",
+        "schemaName": "public",
+        "x": 809.0840691951323,
+        "y": 676.9386039376958
+      },
+      {
+        "name": "tags",
+        "schemaName": "public",
+        "x": -27.798148809956018,
+        "y": 576.8275734951433
+      },
+      {
+        "name": "account_types",
+        "schemaName": "public",
+        "x": 960.9966037437734,
+        "y": -95.29352083484574
+      },
+      {
+        "name": "transaction_tags",
+        "schemaName": "public",
+        "x": -14.021866529586646,
+        "y": 329.33559705949267
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "categories",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "parent_id"
+        ],
+        "secondTableName": "categories",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "transactions",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "transaction_id"
+        ],
+        "secondTableName": "transaction_lines",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "accounts",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "account_id"
+        ],
+        "secondTableName": "transaction_lines",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "categories",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "category_id"
+        ],
+        "secondTableName": "transaction_lines",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": [
+          {
+            "x": 737.2625785180708,
+            "y": 621.0967220685667
+          },
+          {
+            "x": 737.2625785180708,
+            "y": 364.8679519251709
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "categories",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "category_id"
+        ],
+        "secondTableName": "shortcuts",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": [
+          {
+            "x": 1093.915219776522,
+            "y": 621.0967220685667
+          },
+          {
+            "x": 1093.915219776522,
+            "y": 344.7283456947408
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "accounts",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "account_id"
+        ],
+        "secondTableName": "shortcuts",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": [
+          {
+            "x": 876.1010955252809,
+            "y": -79.29352083484574
+          },
+          {
+            "x": 876.1010955252809,
+            "y": 194.57527998763496
+          },
+          {
+            "x": 1200.8418395750602,
+            "y": 194.57527998763496
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "categories",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "category_id"
+        ],
+        "secondTableName": "budgets",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "transactions",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "transaction_id"
+        ],
+        "secondTableName": "transaction_tags",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "tags",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "tag_id"
+        ],
+        "secondTableName": "transaction_tags",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "account_types",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "account_type_id"
+        ],
+        "secondTableName": "accounts",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

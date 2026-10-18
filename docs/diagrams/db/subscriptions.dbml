@@ -1,0 +1,76 @@
+// docs/diagramas/db/subscriptions.dbml
+// Base de datos del microservicio de Suscripciones (subscriptions_db).
+// Este servicio es el único propietario de los planes, de lo que incluye cada plan y de la
+// suscripción de cada tenant. Se diseña como parte de la arquitectura, pero no se implementa
+// en la beta. No guarda datos contables ni datos de tarjetas: el cobro lo gestiona el proveedor.
+// El historial de cambios y el registro de cobros (subscription_events y payments) quedan
+// fuera de esta versión y se añadirán cuando exista la integración real con un proveedor de pago.
+// Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+
+// Estados del ciclo de vida de una suscripción. Es un enum y no una tabla porque el dominio
+// programa el comportamiento de cada estado (por ejemplo, grace conserva el acceso premium
+// unos días tras un pago fallido).
+Enum subscription_status {
+  trial
+  active
+  grace
+  canceled
+  expired
+}
+
+Enum billing_interval {
+  monthly
+  yearly
+}
+
+// Planes ofrecidos. Los dos precios son columnas del plan porque dependen solo de él y la beta
+// tiene dos intervalos de cobro; un tercero exigiría una migración, algo aceptable en esta etapa.
+// Los planes se siembran al crear la base: Gratis y Premium.
+Table plans {
+  id Guid [pk]
+  code string [unique, not null, note: 'Identificador estable que usa el backend, por ejemplo free o premium. No cambia aunque se renombre el plan. MaxLength 30']
+  name string [not null, note: 'Nombre visible. MaxLength 100']
+  monthly_price decimal [null, note: 'Nulo en el plan Gratis. Precisión (18,2)']
+  yearly_price decimal [null, note: 'Nulo en el plan Gratis. Precisión (18,2)']
+  currency_code string [not null, note: 'BOB durante la beta. MaxLength 3']
+  trial_days int [not null, note: 'Duración de la prueba gratuita; 0 si el plan no ofrece prueba']
+  is_active bool [not null, note: 'Un plan retirado se desactiva en lugar de borrarse, porque hay suscripciones que lo referencian']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+}
+
+// Funciones que incluye cada plan. Así decidir qué es premium es un dato y no una columna fija:
+// la lista de funciones premium sigue pendiente y cambiarla no exige modificar el esquema.
+// El plan Premium incluye las funciones del Gratis más las suyas.
+// feature_code es un texto (por ejemplo receipt_scanner o data_export) y el backend mantiene
+// la lista de códigos válidos como constantes. Es una relación binaria sin atributos propios,
+// por eso no admite más descomposición.
+Table plan_features {
+  plan_id Guid [not null, ref: > plans.id]
+  feature_code string [not null, note: 'Código de la función habilitada. MaxLength 50']
+
+  indexes {
+    (plan_id, feature_code) [pk, note: 'Clave compuesta: impide repetir una función dentro de un mismo plan']
+  }
+}
+
+// La suscripción vigente de cada tenant. Todo tenant tiene siempre una, incluso en el plan
+// Gratis, para que consultar el plan sea una sola búsqueda y el token pueda llevarlo sin
+// casos especiales. Al bajar de plan solo cambia plan_id: ningún dato se borra.
+Table subscriptions {
+  id Guid [pk]
+  tenant_id Guid [unique, not null, note: 'Referencia al tenant en tenants_db. Sin FK porque es otra base: entre servicios solo se comparten identificadores. Es único porque cada tenant tiene una sola suscripción vigente. Este servicio la crea en el plan Gratis cuando se registra el tenant']
+  plan_id Guid [not null, ref: > plans.id, note: 'Plan contratado. No se borra un plan con suscripciones: se desactiva']
+  status subscription_status [not null]
+  billing_interval billing_interval [null, note: 'Nulo en el plan Gratis, que no se cobra']
+  trial_ends_at DateTimeOffset [null, note: 'Solo se llena durante el estado trial']
+  current_period_end DateTimeOffset [null, note: 'Fin del período ya pagado. Nulo en el plan Gratis, que no vence']
+  canceled_at DateTimeOffset [null, note: 'Momento en que el usuario canceló. Conserva el acceso hasta current_period_end']
+  created_at DateTimeOffset [not null]
+  updated_at DateTimeOffset [not null]
+
+  indexes {
+    plan_id
+    (status, current_period_end) [note: 'Para encontrar las suscripciones que vencen o entran en gracia']
+  }
+}
