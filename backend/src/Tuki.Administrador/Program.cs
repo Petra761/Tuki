@@ -1,6 +1,7 @@
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Scalar.AspNetCore;
 using Tuki.Administrador.Data;
 using Tuki.Administrador.Services;
 
@@ -15,6 +16,7 @@ string Required(string key) =>
     );
 
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<TenantProvisioningService>();
 builder.Services.AddDbContext<AdminDbContext>(options =>
@@ -42,5 +44,12 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// La documentación de la API solo se expone en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.Run();
