@@ -1,5 +1,6 @@
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using Tuki.Movimientos.Data;
 using Tuki.Movimientos.Middleware;
 
@@ -10,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 const string servicio = "movimientos";
 
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();
 builder.Services.AddScoped<TenantContext>();
@@ -33,5 +35,12 @@ app.UseHttpsRedirection();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+
+// La documentación de la API solo se expone en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.Run();
