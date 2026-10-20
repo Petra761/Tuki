@@ -1,0 +1,13 @@
+namespace Tuki.Administrador.Dtos;
+
+public record SubscriptionStatusResponse(
+    Guid UserId,
+    string Result,
+    string Reason,
+    string? Plan,
+    Guid TenantId,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? ExpiresAt,
+    string? Status,
+    DateTimeOffset CheckedAt
+);
