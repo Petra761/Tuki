@@ -1,6 +1,7 @@
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Scalar.AspNetCore;
 using Tuki.Cuentas.Data;
 using Tuki.Cuentas.Middleware;
 
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 const string servicio = "cuentas";
 
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();
@@ -55,5 +57,12 @@ app.UseHttpsRedirection();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+
+// La documentación de la API solo se expone en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.Run();

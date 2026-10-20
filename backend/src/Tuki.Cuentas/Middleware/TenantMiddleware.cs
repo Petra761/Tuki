@@ -4,7 +4,12 @@ public class TenantMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext http, TenantContext tenant)
     {
-        if (http.Request.Path.StartsWithSegments("/internal"))
+        // Las rutas internas y la documentación de la API no pertenecen a ningún tenant
+        if (
+            http.Request.Path.StartsWithSegments("/internal")
+            || http.Request.Path.StartsWithSegments("/scalar")
+            || http.Request.Path.StartsWithSegments("/openapi")
+        )
         {
             await next(http);
             return;
