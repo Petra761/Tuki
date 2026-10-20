@@ -7,7 +7,8 @@ namespace Tuki.Movimientos.Controllers;
 [Route("internal/tenants")]
 public class TenantsController(
     TenantDatabaseProvisioner provisioner,
-    ILogger<TenantsController> logger) : ControllerBase
+    ILogger<TenantsController> logger
+) : ControllerBase
 {
     [HttpPost("{tenantId:guid}/database")]
     public async Task<IActionResult> PrepareDatabase(Guid tenantId, CancellationToken ct)

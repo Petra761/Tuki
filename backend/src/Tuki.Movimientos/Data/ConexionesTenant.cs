@@ -20,17 +20,26 @@ public sealed class ConexionesTenant
 
         if (!NombreSeguro.IsMatch(_proyecto) || !NombreSeguro.IsMatch(_servicio))
             throw new InvalidOperationException(
-                "El proyecto y el servicio solo pueden tener minúsculas, números y guion bajo, y empezar con una letra.");
+                "El proyecto y el servicio solo pueden tener minúsculas, números y guion bajo, y empezar con una letra."
+            );
 
         // Datos del servidor, sin nombre de base. La base "postgres" existe siempre
         // y se usa para conectarse antes de crear las bases de los tenants.
         _servidor = new NpgsqlConnectionStringBuilder
         {
             Host = Obligatorio(configuracion["Tuki:Postgres:Host"], "Tuki__Postgres__Host"),
-            Port = int.Parse(Obligatorio(configuracion["Tuki:Postgres:Port"], "Tuki__Postgres__Port")),
-            Username = Obligatorio(configuracion["Tuki:Postgres:Usuario"], "Tuki__Postgres__Usuario"),
-            Password = Obligatorio(configuracion["Tuki:Postgres:Password"], "Tuki__Postgres__Password"),
-            Database = "postgres"
+            Port = int.Parse(
+                Obligatorio(configuracion["Tuki:Postgres:Port"], "Tuki__Postgres__Port")
+            ),
+            Username = Obligatorio(
+                configuracion["Tuki:Postgres:Usuario"],
+                "Tuki__Postgres__Usuario"
+            ),
+            Password = Obligatorio(
+                configuracion["Tuki:Postgres:Password"],
+                "Tuki__Postgres__Password"
+            ),
+            Database = "postgres",
         };
     }
 
@@ -39,7 +48,7 @@ public sealed class ConexionesTenant
     public string CadenaConexion(Guid tenantId) =>
         new NpgsqlConnectionStringBuilder(_servidor.ConnectionString)
         {
-            Database = NombreBase(tenantId)
+            Database = NombreBase(tenantId),
         }.ConnectionString;
 
     public string CadenaConexionServidor() => _servidor.ConnectionString;
@@ -47,6 +56,7 @@ public sealed class ConexionesTenant
     private static string Obligatorio(string? valor, string variable) =>
         string.IsNullOrWhiteSpace(valor)
             ? throw new InvalidOperationException(
-                $"Falta {variable}: copia .env.example como .env y completa tus valores.")
+                $"Falta {variable}: copia .env.example como .env y completa tus valores."
+            )
             : valor;
 }

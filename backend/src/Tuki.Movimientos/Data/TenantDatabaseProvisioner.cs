@@ -44,7 +44,9 @@ public class TenantDatabaseProvisioner(ConexionesTenant conexiones)
         await connection.OpenAsync(ct);
 
         await using var command = new NpgsqlCommand(
-            "SELECT 1 FROM pg_database WHERE datname = @name", connection);
+            "SELECT 1 FROM pg_database WHERE datname = @name",
+            connection
+        );
         command.Parameters.AddWithValue("name", database);
 
         return await command.ExecuteScalarAsync(ct) is not null;
