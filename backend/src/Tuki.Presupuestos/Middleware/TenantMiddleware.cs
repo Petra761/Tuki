@@ -5,7 +5,11 @@ public class TenantMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext http, TenantContext tenant)
     {
         // Las rutas internas reciben el tenant en la URL, no en el encabezado
-        if (http.Request.Path.StartsWithSegments("/internal"))
+        if (
+            http.Request.Path.StartsWithSegments("/internal")
+            || http.Request.Path.StartsWithSegments("/scalar")
+            || http.Request.Path.StartsWithSegments("/openapi")
+        )
         {
             await next(http);
             return;

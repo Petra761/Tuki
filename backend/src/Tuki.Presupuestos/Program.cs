@@ -1,5 +1,7 @@
+using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using Tuki.Presupuestos.Data;
 using Tuki.Presupuestos.Middleware;
 
@@ -10,6 +12,12 @@ var builder = WebApplication.CreateBuilder(args);
 const string servicio = "presupuestos";
 
 builder.Services.AddControllers();
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())
+    );
+builder.Services.AddOpenApi();
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();
 builder.Services.AddScoped<TenantContext>();
@@ -33,5 +41,10 @@ app.UseHttpsRedirection();
 app.UseMiddleware<TenantMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
 app.Run();
