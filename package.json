@@ -1,0 +1,16 @@
+{
+  "name": "tuki",
+  "private": true,
+  "scripts": {
+    "dev": "npm run -s dev:backend",
+    "dev:backend": "concurrently --kill-others -c auto -n gateway,administrador,cuentas,movimientos,presupuestos \"npm run -s watch:gateway\" \"npm run -s watch:administrador\" \"npm run -s watch:cuentas\" \"npm run -s watch:movimientos\" \"npm run -s watch:presupuestos\"",
+    "watch:gateway": "dotnet watch -q --non-interactive --project backend/src/Tuki.Gateway run",
+    "watch:administrador": "dotnet watch -q --non-interactive --project backend/src/Tuki.Administrador run",
+    "watch:cuentas": "dotnet watch -q --non-interactive --project backend/src/Tuki.Cuentas run",
+    "watch:movimientos": "dotnet watch -q --non-interactive --project backend/src/Tuki.Movimientos run",
+    "watch:presupuestos": "dotnet watch -q --non-interactive --project backend/src/Tuki.Presupuestos run"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
