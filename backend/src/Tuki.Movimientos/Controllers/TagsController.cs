@@ -7,7 +7,7 @@ using Tuki.Movimientos.Models;
 namespace Tuki.Movimientos.Controllers;
 
 [ApiController]
-[Route("api/tags")]
+[Route("api/movimientos/tags")]
 public class TagsController(MovimientosDbContext db) : ControllerBase
 {
     [HttpGet]

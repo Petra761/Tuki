@@ -7,7 +7,7 @@ using Tuki.Presupuestos.Models;
 namespace Tuki.Presupuestos.Controllers;
 
 [ApiController]
-[Route("api/budgets")]
+[Route("api/presupuestos/budgets")]
 public class BudgetsController(PresupuestosDbContext db) : ControllerBase
 {
     [HttpGet]

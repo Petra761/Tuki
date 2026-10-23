@@ -9,7 +9,7 @@ namespace Tuki.Administrador.Controllers;
 [ApiController]
 public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
 {
-    [HttpGet("api/users/{userId:guid}/subscription-status")]
+    [HttpGet("api/admin/users/{userId:guid}/subscription-status")]
     public async Task<IActionResult> GetStatus(
         Guid userId,
         [FromQuery] DateTimeOffset? at,

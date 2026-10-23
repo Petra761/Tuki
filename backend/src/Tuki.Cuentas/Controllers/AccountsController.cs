@@ -7,7 +7,7 @@ using Tuki.Cuentas.Models;
 namespace Tuki.Cuentas.Controllers;
 
 [ApiController]
-[Route("api/accounts")]
+[Route("api/cuentas/accounts")]
 public class AccountsController(CuentasDbContext db) : ControllerBase
 {
     [HttpGet]

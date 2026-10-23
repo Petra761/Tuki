@@ -9,7 +9,7 @@ using Tuki.Administrador.Services;
 namespace Tuki.Administrador.Controllers;
 
 [ApiController]
-[Route("api/users")]
+[Route("api/admin/users")]
 public class UsersController(AdminDbContext db, TenantProvisioningService provisioning)
     : ControllerBase
 {

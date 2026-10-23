@@ -7,7 +7,7 @@ using Tuki.Administrador.Models;
 namespace Tuki.Administrador.Controllers;
 
 [ApiController]
-[Route("api/plans")]
+[Route("api/admin/plans")]
 public class PlansController(AdminDbContext db) : ControllerBase
 {
     [HttpGet]

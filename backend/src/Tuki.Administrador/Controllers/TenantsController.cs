@@ -7,7 +7,7 @@ using Tuki.Administrador.Services;
 namespace Tuki.Administrador.Controllers;
 
 [ApiController]
-[Route("api/tenants")]
+[Route("api/admin/tenants")]
 public class TenantsController(AdminDbContext db, TenantProvisioningService provisioning)
     : ControllerBase
 {

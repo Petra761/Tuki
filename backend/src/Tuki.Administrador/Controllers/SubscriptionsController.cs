@@ -7,7 +7,7 @@ using Tuki.Administrador.Models;
 namespace Tuki.Administrador.Controllers;
 
 [ApiController]
-[Route("api/subscriptions")]
+[Route("api/admin/subscriptions")]
 public class SubscriptionsController(AdminDbContext db) : ControllerBase
 {
     [HttpPost]
@@ -85,7 +85,7 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
             : Ok(SubscriptionResponse.From(subscription, subscription.Plan.Name));
     }
 
-    [HttpGet("~/api/users/{userId:guid}/subscriptions")]
+    [HttpGet("~/api/admin/users/{userId:guid}/subscriptions")]
     public async Task<IActionResult> GetByUser(Guid userId, CancellationToken ct)
     {
         if (!await db.Users.AnyAsync(u => u.Id == userId, ct))
