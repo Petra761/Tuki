@@ -1,0 +1,59 @@
+# Batería de pruebas por Dev Tunnels
+# Gateway: https://ffh8k5rn-5005.brs.devtunnels.ms  (la URL pública termina en HTTPS; el 5005 es solo el enlace interno)
+# Fecha: 2026-10-24 03:10 (hora del equipo)
+
+## Documentos OpenAPI servidos por el Gateway (sin hosts absolutos)
+  administrador   servers=null, rutas=11
+  cuentas         servers=null, rutas=7
+  movimientos     servers=null, rutas=7
+  presupuestos    servers=null, rutas=3
+
+## scripts/verificar-rutas.sh
+OK    [administrador] /api/plans (200)
+OK    [administrador] /api/plans/available (200)
+OK    [administrador] /api/plans/{id} (200)
+OK    [administrador] /api/subscriptions (405)
+OK    [administrador] /api/subscriptions/{id} (405)
+OK    [administrador] /api/subscriptions/{id}/cancel (405)
+OK    [administrador] /api/tenants/{tenantId} (404)
+OK    [administrador] /api/tenants/{tenantId}/provision (404)
+OK    [administrador] /api/users/register (405)
+OK    [administrador] /api/users/{userId}/subscription-status (404)
+OK    [administrador] /api/users/{userId}/subscriptions (404)
+OK    [cuentas] /api/account-types (400)
+OK    [cuentas] /api/account-types/{id} (400)
+OK    [cuentas] /api/accounts (400)
+OK    [cuentas] /api/accounts/{id} (400)
+OK    [cuentas] /api/categories (400)
+OK    [cuentas] /api/categories/{id} (400)
+OK    [movimientos] /api/shortcuts (400)
+OK    [movimientos] /api/shortcuts/{id} (400)
+OK    [movimientos] /api/tags (400)
+OK    [movimientos] /api/tags/{id} (400)
+OK    [movimientos] /api/transactions (400)
+OK    [movimientos] /api/transactions/{id} (400)
+OK    [presupuestos] /api/budgets (400)
+OK    [presupuestos] /api/budgets/{id} (400)
+
+Todas las rutas del documento público de cada servicio responden por el Gateway.
+
+## scripts/pruebas-presupuestos.sh
+OK    limpieza: segundo presupuesto dado de baja
+Hora 031018 - tenant A 890d174a-0c1f-4945-b6c5-bbe38d169d1f - resumen: fallos=0
+Todas las comprobaciones de budgets pasaron.
+
+## scripts/pruebas-cuentas.sh
+OK    limpieza: Efectivo vuelve a ser la cuenta predeterminada
+Hora 031030 - tenant A 890d174a-0c1f-4945-b6c5-bbe38d169d1f - resumen: fallos=0
+Todas las comprobaciones de Cuentas pasaron.
+
+## scripts/pruebas-movimientos.sh
+OK    limpieza: cuenta e174b009-263e-4cf9-a92d-e813dd0425f9 dada de baja
+Hora 031100 - tenant A 890d174a-0c1f-4945-b6c5-bbe38d169d1f - resumen: fallos=0
+Todas las comprobaciones de tags, atajos y transacciones pasaron.
+
+## scripts/pruebas-administrador.sh
+OK    la suscripción cancelada informa status Cancelled
+Hora 031143 - usuario 6f50c2e2-1135-43d4-8b97-954f47486f11 - resumen: fallos=0
+Todas las comprobaciones de administrador pasaron.
+
