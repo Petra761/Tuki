@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Scalar.AspNetCore;
 using Tuki.Administrador.Data;
+using Tuki.Administrador.OpenApi;
 using Tuki.Administrador.Services;
 
 Env.TraversePath().Load();
@@ -17,6 +18,10 @@ string Required(string key) =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(
+    "publico",
+    options => options.AddDocumentTransformer<SegmentoPublicoTransformer>()
+);
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<TenantProvisioningService>();
 builder.Services.AddDbContext<AdminDbContext>(options =>

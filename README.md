@@ -200,6 +200,22 @@ Adicionalmente, el Gateway expone rutas transformadas para obtener las especific
 - `/openapi/movimientos.json` ➔ `https://localhost:5103/openapi/v1.json`
 - `/openapi/presupuestos.json` ➔ `https://localhost:5104/openapi/v1.json`
 
+### Recursos públicos por servicio
+
+Las llamadas por el Gateway no revelan el servicio de origen: cada recurso se publica bajo `/api/<recurso>` y el Gateway lo reenvía al servicio interno correspondiente.
+
+| Recurso público     | Servicio        |
+| ------------------- | --------------- |
+| `/api/users`        | Administrador   |
+| `/api/plans`        | Administrador   |
+| `/api/subscriptions`| Administrador   |
+| `/api/tenants`      | Administrador   |
+| `/api/accounts`     | Cuentas         |
+| `/api/tags`         | Movimientos     |
+| `/api/budgets`      | Presupuestos    |
+
+**Regla:** cada controlador nuevo exige agregar su recurso a la lista de su servicio en `backend/src/Tuki.Gateway/appsettings.json` y ejecutar `scripts/verificar-rutas.sh` para comprobar que el Gateway lo enruta.
+
 ---
 
 ## 7. Documentación interactiva de APIs (Scalar)

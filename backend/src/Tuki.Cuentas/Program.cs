@@ -4,6 +4,7 @@ using Npgsql;
 using Scalar.AspNetCore;
 using Tuki.Cuentas.Data;
 using Tuki.Cuentas.Middleware;
+using Tuki.Cuentas.OpenApi;
 
 // Carga el archivo .env buscándolo hacia arriba desde la carpeta actual. Debe ir ANTES de
 // crear el builder: así sus valores ya están en las variables de entorno cuando
@@ -17,6 +18,10 @@ const string servicio = "cuentas";
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(
+    "publico",
+    options => options.AddDocumentTransformer<SegmentoPublicoTransformer>()
+);
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();

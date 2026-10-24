@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Tuki.Movimientos.Data;
 using Tuki.Movimientos.Middleware;
+using Tuki.Movimientos.OpenApi;
 
 Env.TraversePath().Load();
 
@@ -12,6 +13,10 @@ const string servicio = "movimientos";
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(
+    "publico",
+    options => options.AddDocumentTransformer<SegmentoPublicoTransformer>()
+);
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();
 builder.Services.AddScoped<TenantContext>();

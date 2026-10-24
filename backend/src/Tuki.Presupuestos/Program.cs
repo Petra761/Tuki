@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Tuki.Presupuestos.Data;
 using Tuki.Presupuestos.Middleware;
+using Tuki.Presupuestos.OpenApi;
 
 Env.TraversePath().Load();
 
@@ -18,6 +19,10 @@ builder
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())
     );
 builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(
+    "publico",
+    options => options.AddDocumentTransformer<SegmentoPublicoTransformer>()
+);
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 builder.Services.AddSingleton<TenantDatabaseProvisioner>();
 builder.Services.AddScoped<TenantContext>();
