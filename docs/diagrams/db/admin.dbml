@@ -100,11 +100,18 @@ Table provisioning_events {
 
 // Planes que se ofrecen. No se borran: si un plan deja de ofrecerse se
 // pone is_available en falso, así las suscripciones viejas no se rompen.
+// Los planes oficiales los inserta la migración del Administrador: Gratis (0),
+// Compra única (1990), Premium mensual (30 días, 990) y Premium anual (365 días, 7990).
 Table plans {
   id Guid [pk]
   name string [not null, unique]
-  price decimal [not null]
-  duration_days int [not null] // cuánto dura una suscripción de este plan
+  // Regla de dinero: los importes se guardan en centavos, nunca en decimal.
+  // 1990 = Bs 19,90. El sufijo "cents" evita leer el entero como bolívianos.
+  price_cents bigint [not null]
+  // Cuánto dura una suscripción de este plan, en días.
+  // Vacío = sin vencimiento (Gratis y Compra única): la suscripción solo
+  // termina si el usuario la cancela.
+  duration_days int
   // Si es falso, el plan no admite nuevas suscripciones.
   is_available bool [not null]
   created_at DateTimeOffset [not null]
@@ -124,18 +131,21 @@ Table plan_features {
 
 // Suscripción de un usuario a un plan. Se conserva el historial, por eso
 // un tenant puede tener varias a lo largo del tiempo.
-// Reglas: expires_at debe ser posterior a started_at, y la suscripción está
-// vigente desde started_at hasta antes de expires_at (en UTC).
+// Reglas: si expires_at está informado, debe ser posterior a started_at, y la
+// suscripción está vigente desde started_at hasta antes de expires_at (en UTC).
+// Vacío = sin vencimiento: la suscripción está activa hasta que se cancele.
 Table subscriptions {
   id Guid [pk]
   user_id Guid [not null]
   plan_id Guid [not null]
   tenant_id int [not null]
   started_at DateTimeOffset [not null]
-  expires_at DateTimeOffset [not null]
+  // Vacío cuando el plan no tiene duración (nulo = sin vencimiento).
+  expires_at DateTimeOffset
   // Enabled: habilitada. Cancelled: dada de baja antes de vencer.
-  // "Vencida" no se guarda: se calcula comparando la fecha actual con expires_at.
-  status string [not null] 
+  // "Vencida" no se guarda: se calcula comparando la fecha actual con expires_at,
+  // solo cuando expires_at está informado.
+  status string [not null]
 
   indexes {
     user_id

@@ -56,10 +56,10 @@ flowchart TD
     Client["📱 App Móvil / Cliente Web"] -->|HTTPS / JWT| GW["🌐 API Gateway (YARP)<br/>Puerto 5000 /scalar"]
 
     subgraph Backend [Backend Microservicios .NET 10]
-        GW -->|/api/admin/*| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
-        GW -->|/api/cuentas/*<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
-        GW -->|/api/movimientos/*<br/>+ X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
-        GW -->|/api/presupuestos/*<br/>+ X-Tenant-Id| Pres["🎯 Tuki.Presupuestos<br/>Puerto 5104"]
+        GW -->|/api/users, /api/plans,<br/>/api/subscriptions, /api/tenants| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
+        GW -->|/api/accounts<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
+        GW -->|/api/tags<br/>+ X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
+        GW -->|/api/budgets<br/>+ X-Tenant-Id| Pres["🎯 Tuki.Presupuestos<br/>Puerto 5104"]
 
         Admin -.->|POST /internal/tenants/{id}/database| Cuentas
         Admin -.->|POST /internal/tenants/{id}/database| Mov
@@ -100,10 +100,10 @@ Todos los servicios del backend escuchan exclusivamente a través de **HTTPS** e
 | Servicio | Puerto | Responsabilidad de dominio | Base de datos | Prefijo de API |
 | :--- | :---: | :--- | :--- | :--- |
 | **Tuki.Gateway** | `5000` | Punto de entrada unificado, enrutamiento inverso y catálogo OpenAPI con Scalar | — | `/`, `/scalar`, `/openapi/*` |
-| **Tuki.Administrador** | `5101` | Registro de usuarios, tenants, planes SaaS, suscripciones y aprovisionamiento | `tuki_admin` *(Global)* | `/api/admin/*` |
-| **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/cuentas/*` |
-| **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/movimientos/*` |
-| **Tuki.Presupuestos** | `5104` | Metas de gasto y límites presupuestarios mensuales por categoría | `tuki_presupuestos_{tenantId}` | `/api/presupuestos/*` |
+| **Tuki.Administrador** | `5101` | Registro de usuarios, tenants, planes SaaS, suscripciones y aprovisionamiento | `tuki_admin` *(Global)* | `/api/users`, `/api/plans`, `/api/subscriptions`, `/api/tenants` |
+| **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/accounts` |
+| **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/tags` |
+| **Tuki.Presupuestos** | `5104` | Metas de gasto y límites presupuestarios mensuales por categoría | `tuki_presupuestos_{tenantId}` | `/api/budgets` |
 
 ---
 
@@ -134,7 +134,7 @@ sequenceDiagram
     participant CTX as 📦 TenantContext (Scoped)
     participant DB as 🗄️ DbContext (Dynamic Connection)
 
-    Cliente->>GW: GET /api/cuentas/accounts (Header: X-Tenant-Id)
+    Cliente->>GW: GET /api/accounts (Header: X-Tenant-Id)
     GW->>MW: Proxy pass-through con encabezados
     MW->>MW: Valida formato Guid en X-Tenant-Id
     alt Encabezado inválido o ausente
@@ -159,7 +159,7 @@ sequenceDiagram
     participant M as 📊 Movimientos
     participant P as 🎯 Presupuestos
 
-    U->>Admin: POST /api/admin/users/register
+    U->>Admin: POST /api/users/register
     Admin->>Admin: Crea Usuario y Tenant (Estado: Provisioning)
     Admin->>PS: Inicia aprovisionamiento de bases
     par Aprovisionamiento paralelo/secuencial
@@ -188,17 +188,19 @@ El microservicio **Tuki.Gateway** actúa como fachada única hacia el exterior i
 
 ### Mapeo de rutas
 
-- `/api/admin/{**resto}` ➔ `https://localhost:5101/api/admin/{resto}`
-- `/api/cuentas/{**resto}` ➔ `https://localhost:5102/api/cuentas/{resto}`
-- `/api/movimientos/{**resto}` ➔ `https://localhost:5103/api/movimientos/{resto}`
-- `/api/presupuestos/{**resto}` ➔ `https://localhost:5104/api/presupuestos/{resto}`
+Cada recurso se publica sin el nombre del servicio y el Gateway lo reenvía a la ruta interna con prefijo:
 
-Adicionalmente, el Gateway expone rutas transformadas para obtener las especificaciones OpenAPI individuales de cada microservicio:
+- `/api/users/**`, `/api/plans/**`, `/api/subscriptions/**`, `/api/tenants/**` ➔ `https://localhost:5101/api/admin/<recurso>/**`
+- `/api/accounts/**` ➔ `https://localhost:5102/api/cuentas/accounts/**`
+- `/api/tags/**` ➔ `https://localhost:5103/api/movimientos/tags/**`
+- `/api/budgets/**` ➔ `https://localhost:5104/api/presupuestos/budgets/**`
 
-- `/openapi/administrador.json` ➔ `https://localhost:5101/openapi/v1.json`
-- `/openapi/cuentas.json` ➔ `https://localhost:5102/openapi/v1.json`
-- `/openapi/movimientos.json` ➔ `https://localhost:5103/openapi/v1.json`
-- `/openapi/presupuestos.json` ➔ `https://localhost:5104/openapi/v1.json`
+Adicionalmente, el Gateway expone rutas transformadas para obtener las especificaciones OpenAPI de cada microservicio. Apuntan al documento público (`publico`), que muestra las rutas ya sin el segmento del servicio:
+
+- `/openapi/administrador.json` ➔ `https://localhost:5101/openapi/publico.json`
+- `/openapi/cuentas.json` ➔ `https://localhost:5102/openapi/publico.json`
+- `/openapi/movimientos.json` ➔ `https://localhost:5103/openapi/publico.json`
+- `/openapi/presupuestos.json` ➔ `https://localhost:5104/openapi/publico.json`
 
 ### Recursos públicos por servicio
 

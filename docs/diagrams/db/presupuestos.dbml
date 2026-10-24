@@ -7,6 +7,8 @@
 // y los gastos viven en el servicio Movimientos, así que aquí category_id es un identificador
 // sin clave foránea (no se dibuja ninguna relación). Su existencia se valida por API al guardar.
 // Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+// Regla de dinero: los importes se guardan en centavos como enteros (bigint), nunca en
+// decimal. 250000 = Bs 2.500,00; el sufijo "cents" evita leerlo como bolívianos.
 
 // Reglas que el dominio valida (dbdiagram no las dibuja):
 //  - El límite del presupuesto es positivo.
@@ -27,7 +29,7 @@ Enum budget_period {
 Table budgets {
   id Guid [pk]
   category_id Guid [null, note: 'Id de la categoría, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. Nulo significa presupuesto del gasto total del período']
-  amount decimal [not null, note: 'Límite de gasto, positivo. Precisión (18,2)']
+  amount_cents bigint [not null, note: 'Límite de gasto en centavos, positivo. Mínimo 1, es decir Bs 0,01']
   period budget_period [not null, note: 'Por ahora solo mensual; el enum permite agregar otros períodos']
   is_archived bool [not null]
   created_at DateTimeOffset [not null]

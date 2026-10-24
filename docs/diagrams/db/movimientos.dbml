@@ -9,6 +9,8 @@
 // diagrama). Su existencia se valida por API al guardar. Las relaciones que sí se dibujan
 // son las de tablas de esta misma base.
 // Los nombres siguen la convención snake_case que EF Core aplica al migrar las clases C#.
+// Regla de dinero: todos los importes se guardan en centavos como enteros (bigint),
+// nunca en decimal. 4050 = Bs 40,50; el sufijo "cents" evita leerlo como bolívianos.
 
 // Reglas que el dominio valida y que la migración puede reforzar con restricciones CHECK
 // (dbdiagram no las dibuja):
@@ -55,7 +57,7 @@ Table transaction_lines {
   transaction_id Guid [not null, ref: > transactions.id, note: 'Una transacción tiene una o más líneas (1 a N). Varias líneas permiten varias categorías o varias cuentas en un mismo movimiento']
   account_id Guid [not null, note: 'Id de la cuenta o persona afectada, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. No se borra una cuenta con líneas: se archiva']
   category_id Guid [null, note: 'Id de la categoría, que vive en el servicio Cuentas. Sin clave foránea: se valida por API. Nulo en los traslados, porque nadie consumió nada. No se borra una categoría con líneas: se archiva']
-  amount decimal [not null, note: 'Con signo: negativo resta de la cuenta y positivo suma. Precisión (18,2)']
+  amount_cents bigint [not null, note: 'Con signo: negativo resta de la cuenta y positivo suma. En centavos: 4050 = Bs 40,50']
   created_at DateTimeOffset [not null]
   updated_at DateTimeOffset [not null]
 
@@ -72,7 +74,7 @@ Table transaction_lines {
 Table shortcuts {
   id Guid [pk]
   name string [not null, note: 'Por ejemplo Licuado. MaxLength 100']
-  amount decimal [not null, note: 'Monto positivo; el signo lo decide el dominio al crear el gasto. Precisión (18,2)']
+  amount_cents bigint [not null, note: 'Monto positivo en centavos (4050 = Bs 40,50); el signo lo decide el dominio al crear el gasto']
   category_id Guid [not null, note: 'Id de la categoría del gasto que se creará, en el servicio Cuentas. Sin clave foránea: se valida por API']
   account_id Guid [not null, note: 'Id de la cuenta de la que sale el dinero, en el servicio Cuentas. Sin clave foránea: se valida por API']
   sort_order int [not null, note: 'Orden en que se muestran en la pantalla principal']
