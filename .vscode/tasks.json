@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Los cinco servicios con dotnet watch (Gateway en https://localhost:5000)
+      "label": "tuki: backend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": {
+        "owner": "tuki",
+        "pattern": { "regexp": "^(?!)$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Now listening on"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "tuki" }
+    },
+    {
+      // Preparación única del túnel con la CLI (login, túnel y puerto)
+      "label": "tuki: preparar túnel (una vez)",
+      "type": "shell",
+      "command": "bash scripts/tunel.sh preparar",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "tuki" }
+    },
+    {
+      // Túnel con la CLI; alternativa al panel "Puertos" de VS Code
+      "label": "tuki: túnel (CLI)",
+      "type": "shell",
+      "command": "bash scripts/tunel.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "tuki-tunel",
+        "pattern": { "regexp": "^(?!)$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Ready to accept connections"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated", "group": "tuki" }
+    },
+    {
+      // Backend y túnel juntos, en paralelo (Ctrl+Shift+B lanza solo el backend)
+      "label": "tuki: backend + túnel (CLI)",
+      "dependsOn": ["tuki: backend", "tuki: túnel (CLI)"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      // Comprueba que todas las rutas públicas responden por el Gateway
+      "label": "tuki: verificar rutas",
+      "type": "shell",
+      "command": "./scripts/verificar-rutas.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "shared", "group": "tuki" }
+    }
+  ]
+}

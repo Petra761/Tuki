@@ -312,6 +312,30 @@ curl -I https://localhost:5102
    ```
    Este comando lanza en paralelo con `dotnet watch` los cinco servicios: Gateway (`5000`), Administrador (`5101`), Cuentas (`5102`), Movimientos (`5103`) y Presupuestos (`5104`).
 
+5. **Compartir el Gateway con los probadores (Dev Tunnels):**
+
+   La vía más corta es el panel **Puertos** de VS Code, que trae el reenvío con Microsoft dev tunnels integrado (sin instalar extensiones):
+
+   1. Con el backend corriendo, abre el panel inferior → pestaña **Puertos** → **Reenviar puerto**.
+   2. Escribe `5000` e inicia sesión con GitHub si VS Code te lo pide.
+   3. Con clic derecho sobre la dirección reenviada → **Visibilidad del puerto → Pública**, para que entren los probadores sin cuenta.
+   4. Comparte esa dirección HTTPS con cada probador **junto con su `tenantId`, siempre por privado** (nunca en el foro).
+
+   Alternativa con la CLI, que mantiene la misma URL fija durante el día:
+
+   ```bash
+   ./scripts/tunel.sh preparar   # una vez: login, túnel tuki-gateway y puerto 5000
+   ./scripts/tunel.sh            # deja el túnel abierto (Ctrl+C lo detiene)
+   ```
+
+   Desde VS Code también están listas las tareas (**Terminal → Ejecutar tarea…**): `tuki: backend` (Ctrl+Shift+B), `tuki: preparar túnel (una vez)`, `tuki: backend + túnel (CLI)` y `tuki: verificar rutas`.
+
+   Las pruebas contra el túnel se corren igual que contra localhost:
+
+   ```bash
+   GATEWAY=https://<direccion-del-tunel> ./scripts/pruebas-cuentas.sh
+   ```
+
 ---
 
 ## 10. Licencia y propiedad
