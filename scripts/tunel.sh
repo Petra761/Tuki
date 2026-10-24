@@ -10,10 +10,17 @@
 set -euo pipefail
 
 TUNEL="${TUNEL:-tuki-gateway}"
-# Puerto HTTP del Gateway: el reenvío (VS Code o la CLI) habla HTTP hacia
-# localhost y el 5000 local es HTTPS con certificado de desarrollo, que el
-# túnel no valida. El 5000 sigue siendo el de pruebas en local.
-PUERTO="${PUERTO:-5005}"
+# Protocolo del Gateway en local para el túnel: http -> 5005, https -> 5000.
+# El tramo público del túnel es HTTPS siempre (certificado de Microsoft); esto
+# solo define el enlace interno hacia el Gateway en esta máquina. El 5000 usa el
+# certificado de desarrollo de Kestrel, que el agente puede no validar, por eso
+# http en 5005 es la opción que sabemos que responde de extremo a extremo.
+PROTO="${PROTO:-http}"
+if [ "$PROTO" = "https" ]; then
+  PUERTO="${PUERTO:-5000}"
+else
+  PUERTO="${PUERTO:-5005}"
+fi
 ACCION="${1:-host}"
 
 if ! command -v devtunnel >/dev/null 2>&1; then
@@ -42,7 +49,7 @@ case "$ACCION" in
     if devtunnel port show "$TUNEL" -p "$PUERTO" >/dev/null 2>&1; then
       echo "El puerto $PUERTO ya está en el túnel."
     else
-      devtunnel port create "$TUNEL" -p "$PUERTO" --protocol http
+      devtunnel port create "$TUNEL" -p "$PUERTO" --protocol "$PROTO"
       echo "Puerto $PUERTO agregado al túnel."
     fi
 
