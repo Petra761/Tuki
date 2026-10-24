@@ -8,8 +8,8 @@ public class CreateBudgetRequest
     // Id de la categoría en el servicio Cuentas; vacío es el presupuesto del gasto total
     public Guid? CategoryId { get; set; }
 
-    [Range(0.01, 1000000000)]
-    public decimal Amount { get; set; }
+    [Range(1, 100000000000)]
+    public long AmountCents { get; set; }
 
     public BudgetPeriod Period { get; set; } = BudgetPeriod.Monthly;
 }
@@ -17,7 +17,7 @@ public class CreateBudgetRequest
 public record BudgetResponse(
     Guid Id,
     Guid? CategoryId,
-    decimal Amount,
+    long AmountCents,
     BudgetPeriod Period,
     bool IsArchived,
     DateTimeOffset CreatedAt
@@ -27,7 +27,7 @@ public record BudgetResponse(
         new(
             budget.Id,
             budget.CategoryId,
-            budget.Amount,
+            budget.AmountCents,
             budget.Period,
             budget.IsArchived,
             budget.CreatedAt

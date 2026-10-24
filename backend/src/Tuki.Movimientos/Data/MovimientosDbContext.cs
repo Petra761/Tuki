@@ -27,7 +27,6 @@ public class MovimientosDbContext(DbContextOptions<MovimientosDbContext> options
         modelBuilder.Entity<TransactionLine>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
-            e.Property(x => x.Amount).HasPrecision(18, 2);
 
             e.HasIndex(x => x.TransactionId);
             e.HasIndex(x => x.AccountId);
@@ -46,7 +45,6 @@ public class MovimientosDbContext(DbContextOptions<MovimientosDbContext> options
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Name).HasMaxLength(100);
-            e.Property(x => x.Amount).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<Tag>(e =>

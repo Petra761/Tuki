@@ -12,7 +12,7 @@ public class TransactionLine
     public Guid? CategoryId { get; set; }
 
     // Con signo: negativo resta de la cuenta y positivo suma
-    public decimal Amount { get; set; }
+    public long AmountCents { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

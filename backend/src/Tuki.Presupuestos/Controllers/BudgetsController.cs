@@ -53,7 +53,7 @@ public class BudgetsController(PresupuestosDbContext db) : ControllerBase
         {
             Id = Guid.NewGuid(),
             CategoryId = request.CategoryId,
-            Amount = request.Amount,
+            AmountCents = request.AmountCents,
             Period = request.Period,
             IsArchived = false,
             CreatedAt = now,

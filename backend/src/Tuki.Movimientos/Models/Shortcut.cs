@@ -6,7 +6,7 @@ public class Shortcut
     public string Name { get; set; } = string.Empty;
 
     // Monto positivo; el signo lo decide la lógica al crear el gasto
-    public decimal Amount { get; set; }
+    public long AmountCents { get; set; }
 
     // Ids del servicio Cuentas, sin navegación: se validan por API
     public Guid CategoryId { get; set; }

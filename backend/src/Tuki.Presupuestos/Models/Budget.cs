@@ -8,7 +8,7 @@ public class Budget
     public Guid? CategoryId { get; set; }
 
     // Límite de gasto, positivo
-    public decimal Amount { get; set; }
+    public long AmountCents { get; set; }
 
     public BudgetPeriod Period { get; set; }
     public bool IsArchived { get; set; }

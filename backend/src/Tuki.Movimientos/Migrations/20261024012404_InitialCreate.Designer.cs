@@ -12,7 +12,7 @@ using Tuki.Movimientos.Data;
 namespace Tuki.Movimientos.Migrations
 {
     [DbContext(typeof(MovimientosDbContext))]
-    [Migration("20261019014845_InitialCreate")]
+    [Migration("20261024012404_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -35,10 +35,9 @@ namespace Tuki.Movimientos.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("account_id");
 
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
+                    b.Property<long>("AmountCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_cents");
 
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid")
@@ -157,10 +156,9 @@ namespace Tuki.Movimientos.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("account_id");
 
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
+                    b.Property<long>("AmountCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_cents");
 
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid")

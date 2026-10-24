@@ -21,12 +21,7 @@ namespace Tuki.Movimientos.Migrations
                         maxLength: 100,
                         nullable: false
                     ),
-                    amount = table.Column<decimal>(
-                        type: "numeric(18,2)",
-                        precision: 18,
-                        scale: 2,
-                        nullable: false
-                    ),
+                    amount_cents = table.Column<long>(type: "bigint", nullable: false),
                     category_id = table.Column<Guid>(type: "uuid", nullable: false),
                     account_id = table.Column<Guid>(type: "uuid", nullable: false),
                     sort_order = table.Column<int>(type: "integer", nullable: false),
@@ -111,12 +106,7 @@ namespace Tuki.Movimientos.Migrations
                     transaction_id = table.Column<Guid>(type: "uuid", nullable: false),
                     account_id = table.Column<Guid>(type: "uuid", nullable: false),
                     category_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    amount = table.Column<decimal>(
-                        type: "numeric(18,2)",
-                        precision: 18,
-                        scale: 2,
-                        nullable: false
-                    ),
+                    amount_cents = table.Column<long>(type: "bigint", nullable: false),
                     created_at = table.Column<DateTimeOffset>(
                         type: "timestamp with time zone",
                         nullable: false

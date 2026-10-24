@@ -17,12 +17,7 @@ namespace Tuki.Presupuestos.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     category_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    amount = table.Column<decimal>(
-                        type: "numeric(18,2)",
-                        precision: 18,
-                        scale: 2,
-                        nullable: false
-                    ),
+                    amount_cents = table.Column<long>(type: "bigint", nullable: false),
                     period = table.Column<string>(
                         type: "character varying(20)",
                         maxLength: 20,

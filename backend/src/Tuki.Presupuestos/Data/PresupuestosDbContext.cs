@@ -13,7 +13,6 @@ public class PresupuestosDbContext(DbContextOptions<PresupuestosDbContext> optio
         modelBuilder.Entity<Budget>(e =>
         {
             e.Property(x => x.Id).ValueGeneratedNever();
-            e.Property(x => x.Amount).HasPrecision(18, 2);
             e.Property(x => x.Period).HasConversion<string>().HasMaxLength(20);
 
             // PostgreSQL permite varios nulos en un índice único, así que el límite del
