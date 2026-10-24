@@ -206,6 +206,158 @@ namespace Tuki.Cuentas.Migrations
             );
 
             migrationBuilder.InsertData(
+                table: "categories",
+                columns: new[]
+                {
+                    "id",
+                    "created_at",
+                    "is_archived",
+                    "kind",
+                    "name",
+                    "parent_id",
+                    "updated_at",
+                },
+                values: new object[,]
+                {
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000101"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Alimentación",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000102"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Transporte",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000103"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Educación",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000104"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Salud",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000105"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Hogar",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000106"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Ocio",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000107"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Expense",
+                        "Otros gastos",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000108"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Income",
+                        "Sueldo",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                    {
+                        new Guid("00000000-0000-0000-0000-000000000109"),
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                        false,
+                        "Income",
+                        "Otros ingresos",
+                        null,
+                        new DateTimeOffset(
+                            new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            new TimeSpan(0, 0, 0, 0, 0)
+                        ),
+                    },
+                }
+            );
+
+            migrationBuilder.InsertData(
                 table: "accounts",
                 columns: new[]
                 {

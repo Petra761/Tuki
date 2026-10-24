@@ -116,6 +116,90 @@ public class CuentasDbContext(DbContextOptions<CuentasDbContext> options) : DbCo
                 .WithMany()
                 .HasForeignKey(x => x.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasData(
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000101"),
+                    Name = "Alimentación",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000102"),
+                    Name = "Transporte",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000103"),
+                    Name = "Educación",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000104"),
+                    Name = "Salud",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000105"),
+                    Name = "Hogar",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000106"),
+                    Name = "Ocio",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000107"),
+                    Name = "Otros gastos",
+                    Kind = CategoryKind.Expense,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000108"),
+                    Name = "Sueldo",
+                    Kind = CategoryKind.Income,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                },
+                new Category
+                {
+                    Id = Guid.Parse("00000000-0000-0000-0000-000000000109"),
+                    Name = "Otros ingresos",
+                    Kind = CategoryKind.Income,
+                    IsArchived = false,
+                    CreatedAt = SeedDate,
+                    UpdatedAt = SeedDate,
+                }
+            );
         });
     }
 }
