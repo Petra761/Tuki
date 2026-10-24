@@ -317,14 +317,14 @@ curl -I https://localhost:5102
    La vía más corta es el panel **Puertos** de VS Code, que trae el reenvío con Microsoft dev tunnels integrado (sin instalar extensiones):
 
    1. Con el backend corriendo, abre el panel inferior → pestaña **Puertos** → **Reenviar puerto**.
-   2. Escribe `5000` e inicia sesión con GitHub si VS Code te lo pide.
+   2. Escribe `5005` (el puerto HTTP del Gateway, pensado para el túnel; el `5000` es HTTPS con certificado de desarrollo y no sirve para reenviar) e inicia sesión con GitHub si VS Code te lo pide.
    3. Con clic derecho sobre la dirección reenviada → **Visibilidad del puerto → Pública**, para que entren los probadores sin cuenta.
    4. Comparte esa dirección HTTPS con cada probador **junto con su `tenantId`, siempre por privado** (nunca en el foro).
 
    Alternativa con la CLI, que mantiene la misma URL fija durante el día:
 
    ```bash
-   ./scripts/tunel.sh preparar   # una vez: login, túnel tuki-gateway y puerto 5000
+   ./scripts/tunel.sh preparar   # una vez: login, túnel tuki-gateway y puerto 5005
    ./scripts/tunel.sh            # deja el túnel abierto (Ctrl+C lo detiene)
    ```
 

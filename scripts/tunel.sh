@@ -10,7 +10,10 @@
 set -euo pipefail
 
 TUNEL="${TUNEL:-tuki-gateway}"
-PUERTO="${PUERTO:-5000}"
+# Puerto HTTP del Gateway: el reenvío (VS Code o la CLI) habla HTTP hacia
+# localhost y el 5000 local es HTTPS con certificado de desarrollo, que el
+# túnel no valida. El 5000 sigue siendo el de pruebas en local.
+PUERTO="${PUERTO:-5005}"
 ACCION="${1:-host}"
 
 if ! command -v devtunnel >/dev/null 2>&1; then
@@ -35,11 +38,11 @@ case "$ACCION" in
       echo "Túnel $TUNEL creado."
     fi
 
-    # El Gateway escucha en https://localhost:5000 (certificado de desarrollo)
+    # El reenvío llega por HTTP; el Gateway expone el 5005 para eso
     if devtunnel port show "$TUNEL" -p "$PUERTO" >/dev/null 2>&1; then
       echo "El puerto $PUERTO ya está en el túnel."
     else
-      devtunnel port create "$TUNEL" -p "$PUERTO" --protocol https
+      devtunnel port create "$TUNEL" -p "$PUERTO" --protocol http
       echo "Puerto $PUERTO agregado al túnel."
     fi
 
