@@ -11,6 +11,20 @@ public class CreateAccountRequest
     public Guid AccountTypeId { get; set; }
 }
 
+// El PUT reemplaza la cuenta. Marcar IsDefault en una cuenta quita la marca de
+// la que la tenía antes, en la misma transacción
+public class UpdateAccountRequest
+{
+    [Required, MaxLength(100)]
+    public string Name { get; set; } = string.Empty;
+
+    public Guid AccountTypeId { get; set; }
+
+    public bool IsDefault { get; set; }
+
+    public bool IsArchived { get; set; }
+}
+
 public record AccountResponse(
     Guid Id,
     Guid AccountTypeId,

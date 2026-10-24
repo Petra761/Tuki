@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -16,7 +17,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Nombre corto de este servicio; forma parte del nombre de sus bases (ej. tuki_cuentas_12).
 const string servicio = "cuentas";
 
-builder.Services.AddControllers();
+// Los enums se envían como texto ("Expense", "Income") para que la API sea
+// legible, igual que en Presupuestos
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddOpenApi();
 builder.Services.AddOpenApi(
     "publico",

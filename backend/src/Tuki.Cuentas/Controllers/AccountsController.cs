@@ -11,13 +11,21 @@ namespace Tuki.Cuentas.Controllers;
 public class AccountsController(CuentasDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] bool includeArchived = false,
+        CancellationToken ct = default
+    )
     {
-        var accounts = await db
-            .Accounts.AsNoTracking()
-            .Include(a => a.AccountType)
-            .OrderBy(a => a.Name)
-            .ToListAsync(ct);
+        var query = db.Accounts.AsNoTracking().Include(a => a.AccountType).AsQueryable();
+
+        // Los archivados se ocultan por defecto porque conservan su historial de
+        // movimientos y un PUT los restaura
+        if (!includeArchived)
+        {
+            query = query.Where(a => !a.IsArchived);
+        }
+
+        var accounts = await query.OrderBy(a => a.Name).ToListAsync(ct);
 
         return Ok(accounts.Select(a => AccountResponse.From(a, a.AccountType.Name)));
     }
@@ -66,5 +74,74 @@ public class AccountsController(CuentasDbContext db) : ControllerBase
             new { id = account.Id },
             AccountResponse.From(account, type.Name)
         );
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        UpdateAccountRequest request,
+        CancellationToken ct
+    )
+    {
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (account is null)
+        {
+            return NotFound(new { error = "La cuenta no existe." });
+        }
+
+        // Al crear o actualizar, la cuenta debe apuntar a un tipo existente y
+        // activo: un tipo archivado no admite cuentas nuevas ni cambios
+        var type = await db.AccountTypes.FirstOrDefaultAsync(
+            t => t.Id == request.AccountTypeId && !t.IsArchived,
+            ct
+        );
+
+        if (type is null)
+        {
+            return BadRequest(new { error = "El tipo de cuenta no existe o está archivado." });
+        }
+
+        // El índice único filtrado solo admite una cuenta predeterminada: la marca
+        // se quita a la anterior y se pone a esta en un único SaveChanges
+        if (request.IsDefault && !account.IsDefault)
+        {
+            var defaults = await db.Accounts.Where(a => a.IsDefault && a.Id != id).ToListAsync(ct);
+
+            foreach (var previous in defaults)
+            {
+                previous.IsDefault = false;
+            }
+        }
+
+        account.AccountTypeId = type.Id;
+        account.Name = request.Name.Trim();
+        account.IsDefault = request.IsDefault;
+        account.IsArchived = request.IsArchived;
+        account.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Ok(AccountResponse.From(account, type.Name));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var account = await db.Accounts.FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (account is null)
+        {
+            return NotFound(new { error = "La cuenta no existe." });
+        }
+
+        // La baja es por archivado, no por borrado: los movimientos siguen
+        // refiriéndose a la cuenta, por eso la cuenta Efectivo sembrada por la
+        // migración tampoco puede desaparecer
+        if (!account.IsArchived)
+        {
+            account.IsArchived = true;
+            account.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return NoContent();
     }
 }

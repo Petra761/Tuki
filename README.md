@@ -57,7 +57,7 @@ flowchart TD
 
     subgraph Backend [Backend Microservicios .NET 10]
         GW -->|/api/users, /api/plans,<br/>/api/subscriptions, /api/tenants| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
-        GW -->|/api/accounts<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
+        GW -->|/api/accounts, /api/account-types,<br/>/api/categories<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
         GW -->|/api/tags<br/>+ X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
         GW -->|/api/budgets<br/>+ X-Tenant-Id| Pres["🎯 Tuki.Presupuestos<br/>Puerto 5104"]
 
@@ -101,7 +101,7 @@ Todos los servicios del backend escuchan exclusivamente a través de **HTTPS** e
 | :--- | :---: | :--- | :--- | :--- |
 | **Tuki.Gateway** | `5000` | Punto de entrada unificado, enrutamiento inverso y catálogo OpenAPI con Scalar | — | `/`, `/scalar`, `/openapi/*` |
 | **Tuki.Administrador** | `5101` | Registro de usuarios, tenants, planes SaaS, suscripciones y aprovisionamiento | `tuki_admin` *(Global)* | `/api/users`, `/api/plans`, `/api/subscriptions`, `/api/tenants` |
-| **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/accounts` |
+| **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/accounts`, `/api/account-types`, `/api/categories` |
 | **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/tags` |
 | **Tuki.Presupuestos** | `5104` | Metas de gasto y límites presupuestarios mensuales por categoría | `tuki_presupuestos_{tenantId}` | `/api/budgets` |
 
@@ -191,7 +191,7 @@ El microservicio **Tuki.Gateway** actúa como fachada única hacia el exterior i
 Cada recurso se publica sin el nombre del servicio y el Gateway lo reenvía a la ruta interna con prefijo:
 
 - `/api/users/**`, `/api/plans/**`, `/api/subscriptions/**`, `/api/tenants/**` ➔ `https://localhost:5101/api/admin/<recurso>/**`
-- `/api/accounts/**` ➔ `https://localhost:5102/api/cuentas/accounts/**`
+- `/api/accounts/**`, `/api/account-types/**`, `/api/categories/**` ➔ `https://localhost:5102/api/cuentas/<recurso>/**`
 - `/api/tags/**` ➔ `https://localhost:5103/api/movimientos/tags/**`
 - `/api/budgets/**` ➔ `https://localhost:5104/api/presupuestos/budgets/**`
 
@@ -213,6 +213,8 @@ Las llamadas por el Gateway no revelan el servicio de origen: cada recurso se pu
 | `/api/subscriptions`| Administrador   |
 | `/api/tenants`      | Administrador   |
 | `/api/accounts`     | Cuentas         |
+| `/api/account-types`| Cuentas         |
+| `/api/categories`   | Cuentas         |
 | `/api/tags`         | Movimientos     |
 | `/api/budgets`      | Presupuestos    |
 
