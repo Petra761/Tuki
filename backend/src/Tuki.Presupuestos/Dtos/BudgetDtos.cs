@@ -14,6 +14,19 @@ public class CreateBudgetRequest
     public BudgetPeriod Period { get; set; } = BudgetPeriod.Monthly;
 }
 
+// El PUT reemplaza el presupuesto completo; IsArchived permite restaurar uno dado de baja
+public class UpdateBudgetRequest
+{
+    public Guid? CategoryId { get; set; }
+
+    [Range(1, 100000000000)]
+    public long AmountCents { get; set; }
+
+    public BudgetPeriod Period { get; set; } = BudgetPeriod.Monthly;
+
+    public bool IsArchived { get; set; }
+}
+
 public record BudgetResponse(
     Guid Id,
     Guid? CategoryId,

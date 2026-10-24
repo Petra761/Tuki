@@ -11,9 +11,27 @@ namespace Tuki.Presupuestos.Controllers;
 public class BudgetsController(PresupuestosDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    public async Task<IActionResult> GetAll(
+        [FromQuery] BudgetPeriod? period,
+        [FromQuery] bool includeArchived = false,
+        CancellationToken ct = default
+    )
     {
-        var budgets = await db.Budgets.AsNoTracking().OrderBy(b => b.CreatedAt).ToListAsync(ct);
+        var query = db.Budgets.AsNoTracking().AsQueryable();
+
+        if (period is not null)
+        {
+            query = query.Where(b => b.Period == period);
+        }
+
+        // Los archivados se ocultan del listado por defecto porque siguen siendo
+        // consultables por id: un PUT los restaura sin crear un registro nuevo
+        if (!includeArchived)
+        {
+            query = query.Where(b => !b.IsArchived);
+        }
+
+        var budgets = await query.OrderBy(b => b.CreatedAt).ToListAsync(ct);
         return Ok(budgets.Select(BudgetResponse.From));
     }
 
@@ -29,6 +47,11 @@ public class BudgetsController(PresupuestosDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateBudgetRequest request, CancellationToken ct)
     {
+        if (!Enum.IsDefined(request.Period))
+        {
+            return BadRequest(new { error = "El período no es un valor válido." });
+        }
+
         // La base permite varios nulos en el índice único, así que el presupuesto
         // del gasto total (sin categoría) se controla aquí
         var exists = await db.Budgets.AnyAsync(
@@ -38,14 +61,7 @@ public class BudgetsController(PresupuestosDbContext db) : ControllerBase
 
         if (exists)
         {
-            return Conflict(
-                new
-                {
-                    error = request.CategoryId is null
-                        ? "Ya existe un presupuesto del gasto total para ese período."
-                        : "Ya existe un presupuesto para esa categoría y período.",
-                }
-            );
+            return Conflict(RepeatedBudget(request.CategoryId));
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -69,4 +85,73 @@ public class BudgetsController(PresupuestosDbContext db) : ControllerBase
             BudgetResponse.From(budget)
         );
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        UpdateBudgetRequest request,
+        CancellationToken ct
+    )
+    {
+        if (!Enum.IsDefined(request.Period))
+        {
+            return BadRequest(new { error = "El período no es un valor válido." });
+        }
+
+        var budget = await db.Budgets.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (budget is null)
+        {
+            return NotFound(new { error = "El presupuesto no existe." });
+        }
+
+        // Al mover el presupuesto a otra categoría o período no debe chocar
+        // con el registro existente (se ignora el propio id)
+        var repeated = await db.Budgets.AnyAsync(
+            b => b.Id != id && b.CategoryId == request.CategoryId && b.Period == request.Period,
+            ct
+        );
+
+        if (repeated)
+        {
+            return Conflict(RepeatedBudget(request.CategoryId));
+        }
+
+        budget.CategoryId = request.CategoryId;
+        budget.AmountCents = request.AmountCents;
+        budget.Period = request.Period;
+        budget.IsArchived = request.IsArchived;
+        budget.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Ok(BudgetResponse.From(budget));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var budget = await db.Budgets.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (budget is null)
+        {
+            return NotFound(new { error = "El presupuesto no existe." });
+        }
+
+        // La baja es por archivado: el historial de gastos puede seguir
+        // consultando el presupuesto y un PUT puede restaurarlo
+        if (!budget.IsArchived)
+        {
+            budget.IsArchived = true;
+            budget.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return NoContent();
+    }
+
+    private static object RepeatedBudget(Guid? categoryId) =>
+        new
+        {
+            error = categoryId is null
+                ? "Ya existe un presupuesto del gasto total para ese período."
+                : "Ya existe un presupuesto para esa categoría y período.",
+        };
 }
