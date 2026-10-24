@@ -58,7 +58,7 @@ flowchart TD
     subgraph Backend [Backend Microservicios .NET 10]
         GW -->|/api/users, /api/plans,<br/>/api/subscriptions, /api/tenants| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
         GW -->|/api/accounts, /api/account-types,<br/>/api/categories<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
-        GW -->|/api/tags<br/>+ X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
+        GW -->|/api/tags, /api/shortcuts<br/>+ X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
         GW -->|/api/budgets<br/>+ X-Tenant-Id| Pres["🎯 Tuki.Presupuestos<br/>Puerto 5104"]
 
         Admin -.->|POST /internal/tenants/{id}/database| Cuentas
@@ -102,7 +102,7 @@ Todos los servicios del backend escuchan exclusivamente a través de **HTTPS** e
 | **Tuki.Gateway** | `5000` | Punto de entrada unificado, enrutamiento inverso y catálogo OpenAPI con Scalar | — | `/`, `/scalar`, `/openapi/*` |
 | **Tuki.Administrador** | `5101` | Registro de usuarios, tenants, planes SaaS, suscripciones y aprovisionamiento | `tuki_admin` *(Global)* | `/api/users`, `/api/plans`, `/api/subscriptions`, `/api/tenants` |
 | **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/accounts`, `/api/account-types`, `/api/categories` |
-| **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/tags` |
+| **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/tags`, `/api/shortcuts` |
 | **Tuki.Presupuestos** | `5104` | Metas de gasto y límites presupuestarios mensuales por categoría | `tuki_presupuestos_{tenantId}` | `/api/budgets` |
 
 ---
@@ -192,7 +192,7 @@ Cada recurso se publica sin el nombre del servicio y el Gateway lo reenvía a la
 
 - `/api/users/**`, `/api/plans/**`, `/api/subscriptions/**`, `/api/tenants/**` ➔ `https://localhost:5101/api/admin/<recurso>/**`
 - `/api/accounts/**`, `/api/account-types/**`, `/api/categories/**` ➔ `https://localhost:5102/api/cuentas/<recurso>/**`
-- `/api/tags/**` ➔ `https://localhost:5103/api/movimientos/tags/**`
+- `/api/tags/**`, `/api/shortcuts/**` ➔ `https://localhost:5103/api/movimientos/<recurso>/**`
 - `/api/budgets/**` ➔ `https://localhost:5104/api/presupuestos/budgets/**`
 
 Adicionalmente, el Gateway expone rutas transformadas para obtener las especificaciones OpenAPI de cada microservicio. Apuntan al documento público (`publico`), que muestra las rutas ya sin el segmento del servicio:
@@ -216,6 +216,7 @@ Las llamadas por el Gateway no revelan el servicio de origen: cada recurso se pu
 | `/api/account-types`| Cuentas         |
 | `/api/categories`   | Cuentas         |
 | `/api/tags`         | Movimientos     |
+| `/api/shortcuts`    | Movimientos     |
 | `/api/budgets`      | Presupuestos    |
 
 **Regla:** cada controlador nuevo exige agregar su recurso a la lista de su servicio en `backend/src/Tuki.Gateway/appsettings.json` y ejecutar `scripts/verificar-rutas.sh` para comprobar que el Gateway lo enruta.
