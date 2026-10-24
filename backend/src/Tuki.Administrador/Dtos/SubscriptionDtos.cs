@@ -18,7 +18,7 @@ public record SubscriptionResponse(
     string PlanName,
     Guid TenantId,
     DateTimeOffset StartedAt,
-    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ExpiresAt,
     string Status
 )
 {

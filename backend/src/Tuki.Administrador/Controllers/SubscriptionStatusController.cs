@@ -32,7 +32,7 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
 
         var current =
             subscriptions.FirstOrDefault(s => SubscriptionEvaluator.IsActive(s, now))
-            ?? subscriptions.OrderByDescending(s => s.ExpiresAt).FirstOrDefault();
+            ?? subscriptions.OrderByDescending(s => s.StartedAt).FirstOrDefault();
 
         if (current is null)
         {

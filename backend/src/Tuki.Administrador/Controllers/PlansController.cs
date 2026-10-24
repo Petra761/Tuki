@@ -50,7 +50,7 @@ public class PlansController(AdminDbContext db) : ControllerBase
         {
             Id = Guid.NewGuid(),
             Name = name,
-            Price = request.Price,
+            PriceCents = request.PriceCents,
             DurationDays = request.DurationDays,
             IsAvailable = request.IsAvailable,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -75,7 +75,7 @@ public class PlansController(AdminDbContext db) : ControllerBase
             return Conflict(new { error = "Ya existe otro plan con ese nombre." });
 
         plan.Name = name;
-        plan.Price = request.Price;
+        plan.PriceCents = request.PriceCents;
         plan.DurationDays = request.DurationDays;
         plan.IsAvailable = request.IsAvailable;
         await db.SaveChangesAsync(ct);

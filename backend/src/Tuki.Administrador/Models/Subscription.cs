@@ -13,9 +13,9 @@ public class Subscription
     public Guid TenantId { get; set; }
     public Tenant Tenant { get; set; } = null!;
 
-    // Fechas siempre en UTC: la suscripción está vigente desde StartedAt hasta antes de ExpiresAt
+    // Fechas en UTC: vigente desde StartedAt hasta antes de ExpiresAt; nulo indica sin vencimiento
     public DateTimeOffset StartedAt { get; set; }
-    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
 
     public SubscriptionStatus Status { get; set; }
 }

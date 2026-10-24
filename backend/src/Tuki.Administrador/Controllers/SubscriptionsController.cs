@@ -35,8 +35,11 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
         if (startedAt > now)
             return BadRequest(new { error = "La fecha de inicio no puede ser futura." });
 
-        var expiresAt = startedAt.AddDays(plan.DurationDays);
-        if (expiresAt <= startedAt)
+        DateTimeOffset? expiresAt = plan.DurationDays.HasValue
+            ? startedAt.AddDays(plan.DurationDays.Value)
+            : null;
+
+        if (expiresAt.HasValue && expiresAt <= startedAt)
             return BadRequest(new { error = "El vencimiento debe ser posterior al inicio." });
 
         var hasActive = await db.Subscriptions.AnyAsync(
@@ -44,7 +47,7 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
                 s.UserId == user.Id
                 && s.Status == SubscriptionStatus.Enabled
                 && s.StartedAt <= now
-                && s.ExpiresAt > now,
+                && (s.ExpiresAt == null || s.ExpiresAt > now),
             ct
         );
 

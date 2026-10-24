@@ -54,7 +54,6 @@ public class AdminDbContext(DbContextOptions<AdminDbContext> options) : DbContex
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Name).HasMaxLength(100);
-            e.Property(x => x.Price).HasPrecision(18, 2);
 
             e.HasIndex(x => x.Name).IsUnique();
         });

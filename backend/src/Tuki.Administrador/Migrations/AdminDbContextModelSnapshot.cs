@@ -32,7 +32,7 @@ namespace Tuki.Administrador.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<int>("DurationDays")
+                    b.Property<int?>("DurationDays")
                         .HasColumnType("integer")
                         .HasColumnName("duration_days");
 
@@ -46,10 +46,9 @@ namespace Tuki.Administrador.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("price");
+                    b.Property<long>("PriceCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("price_cents");
 
                     b.HasKey("Id")
                         .HasName("pk_plans");
@@ -116,7 +115,7 @@ namespace Tuki.Administrador.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTimeOffset>("ExpiresAt")
+                    b.Property<DateTimeOffset?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 

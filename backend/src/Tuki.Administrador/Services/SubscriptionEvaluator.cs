@@ -12,12 +12,12 @@ public enum SubscriptionResult
 
 public static class SubscriptionEvaluator
 {
-    // Vigente desde StartedAt (incluido) hasta antes de ExpiresAt (excluido), todo en UTC.
-    // Que el vencimiento quede excluido es lo que hace que, al vencer, deje de estar activa.
+    // Vigente desde StartedAt (incluido) hasta antes de ExpiresAt (si tiene vencimiento).
+    // Una suscripción sin fecha de vencimiento y no cancelada permanece activa indefinidamente.
     public static bool IsActive(Subscription subscription, DateTimeOffset now) =>
         subscription.Status == SubscriptionStatus.Enabled
         && subscription.StartedAt <= now
-        && now < subscription.ExpiresAt;
+        && (!subscription.ExpiresAt.HasValue || now < subscription.ExpiresAt.Value);
 
     public static (SubscriptionResult Result, string Reason) Evaluate(
         Subscription subscription,
@@ -25,10 +25,12 @@ public static class SubscriptionEvaluator
     )
     {
         if (IsActive(subscription, now))
-            return (
-                SubscriptionResult.Active,
-                $"Vigente hasta el {Format(subscription.ExpiresAt)}."
-            );
+        {
+            var reason = subscription.ExpiresAt.HasValue
+                ? $"Vigente hasta el {Format(subscription.ExpiresAt.Value)}."
+                : "Plan sin vencimiento.";
+            return (SubscriptionResult.Active, reason);
+        }
 
         // El enunciado solo define activa, vencida o inexistente: una cancelada ya no está
         // habilitada y se informa como vencida, con el motivo en Reason
@@ -37,7 +39,9 @@ public static class SubscriptionEvaluator
 
         return (
             SubscriptionResult.Expired,
-            $"La suscripción venció el {Format(subscription.ExpiresAt)}."
+            subscription.ExpiresAt.HasValue
+                ? $"La suscripción venció el {Format(subscription.ExpiresAt.Value)}."
+                : "La suscripción no está activa."
         );
     }
 
