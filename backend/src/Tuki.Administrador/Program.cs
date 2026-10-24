@@ -4,6 +4,7 @@ using Npgsql;
 using Scalar.AspNetCore;
 using Tuki.Administrador.Data;
 using Tuki.Administrador.OpenApi;
+using Tuki.Administrador.Options;
 using Tuki.Administrador.Services;
 
 Env.TraversePath().Load();
@@ -52,6 +53,9 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
 
     options.UseNpgsql(connection.ConnectionString).UseSnakeCaseNamingConvention();
 });
+
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddSingleton<TokenService>();
 
 var app = builder.Build();
 
