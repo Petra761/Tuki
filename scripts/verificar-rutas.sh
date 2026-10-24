@@ -31,11 +31,20 @@ for servicio in "${SERVICIOS[@]}"; do
 
   while IFS= read -r ruta; do
     # Se prueba el prefijo fijo de la ruta (hasta el primer segmento dinámico):
-    # basta con que el Gateway la reconozca; 400 por falta de X-Tenant-Id o
-    # 401 sin token también cuentan como enrutada.
+    # basta con que el Gateway la reconozca.
+    # El Gateway agrega el header X-Tuki-Gateway a toda respuesta enrutada, así
+    # que un 404 SIN el header significa que la ruta no está configurada, mientras
+    # que un 404 CON el header viene del servicio (por ejemplo, un recurso sin
+    # GET en la colección) y la ruta existe. 400 por falta de X-Tenant-Id o
+    # 401 sin token también cuentan como enrutadas.
     prefijo="$(echo "$ruta" | sed 's/{.*//' | sed 's:/$::')"
-    codigo="$(curl -ksS -o /dev/null -w '%{http_code}' "$BASE_URL$prefijo")"
-    if [ "$codigo" = "404" ]; then
+    respuesta="$(curl -ksS -o /dev/null -D - -w '%{http_code}' "$BASE_URL$prefijo")"
+    codigo="$(echo "$respuesta" | tail -n 1)"
+    enrutada=1
+    if [ "$codigo" != "404" ] || echo "$respuesta" | grep -qi "^x-tuki-gateway:"; then
+      enrutada=0
+    fi
+    if [ "$enrutada" -ne 0 ]; then
       echo "FALLO [$servicio]: $ruta no está enrutada por el Gateway (404 en $prefijo)"
       fallos=$((fallos + 1))
     else
