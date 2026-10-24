@@ -25,7 +25,9 @@ ACCION="${1:-host}"
 
 if ! command -v devtunnel >/dev/null 2>&1; then
   echo "No se encontró devtunnel. Instálalo con:"
-  echo "  curl -sL https://aka.ms/DevTunnelCliInstall | bash"
+  echo "  curl -sL https://aka.ms/DevTunnelCliInstall | bash   # el binario queda en ~/bin"
+  echo "  chmod +x ~/bin/devtunnel"
+  echo '  export PATH="$HOME/bin:$PATH"'
   exit 1
 fi
 

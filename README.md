@@ -312,31 +312,81 @@ curl -I https://localhost:5102
    ```
    Este comando lanza en paralelo con `dotnet watch` los cinco servicios: Gateway (`5000`), Administrador (`5101`), Cuentas (`5102`), Movimientos (`5103`) y Presupuestos (`5104`).
 
-5. **Compartir el Gateway con los probadores (Dev Tunnels):**
+5. **Compartir el Gateway con los probadores (Microsoft Dev Tunnels):**
 
-   La vía más corta es el panel **Puertos** de VS Code, que trae el reenvío con Microsoft dev tunnels integrado (sin instalar extensiones):
+   El reenvío está integrado en VS Code, así que no hace falta instalar extensiones ni la CLI. La dirección pública que recibe el probador **siempre termina en HTTPS** (el certificado es de Microsoft); el puerto local solo define el enlace interno entre el agente y esta máquina.
 
-   > El Gateway debe escuchar en `0.0.0.0:5005` y no solo en `localhost`, porque el agente del túnel reenvía hacia la IP local de la máquina (`192.168.x.x`) y no hacia `127.0.0.1`. Si el reenvío devuelve `502` con el Gateway accesible en local, casi siempre es eso. Por eso `launchSettings.json` declara `http://0.0.0.0:5005`; reinicia la tarea del backend para que tome el cambio. Solo el 5005 queda escuchando en la red local; el 5000 de pruebas sigue en `localhost`.
+   **Puertos del Gateway:**
 
-   1. Con el backend corriendo, abre el panel inferior → pestaña **Puertos** → **Reenviar puerto**.
-   2. Escribe `5005` (el puerto HTTP del Gateway, pensado para el túnel; el `5000` es HTTPS con certificado de desarrollo y no sirve para reenviar) e inicia sesión con GitHub si VS Code te lo pide.
-   3. Con clic derecho sobre la dirección reenviada → **Visibilidad del puerto → Pública**, para que entren los probadores sin cuenta.
-   4. Comparte esa dirección HTTPS con cada probador **junto con su `tenantId`, siempre por privado** (nunca en el foro).
+   | Puerto | Escucha en | Para qué sirve |
+   |---|---|---|
+   | `5000` | `localhost` (HTTPS) | Pruebas en local: `https://localhost:5000`, Scalar, curl con `-k` |
+   | `5005` | `0.0.0.0` (HTTP) | **Solo** para el túnel; no se expone a internet por sí mismo |
 
-   Alternativa con la CLI, que mantiene la misma URL fija durante el día:
+   El `5005` debe quedar en `0.0.0.0` y no en `localhost`: el agente del túnel reenvía hacia la IP local de la máquina (`192.168.x.x`), no hacia `127.0.0.1`. `launchSettings.json` ya lo declara así; si cambias ese archivo, **reinicia la tarea del backend**, porque `launchSettings` solo se lee al arrancar.
+
+   **Procedimiento:**
+
+   1. Encender el backend: **Ctrl+Shift+B** (tarea `tuki: backend`).
+   2. Panel inferior → pestaña **Puertos** → **Reenviar puerto** → escribe `5005`.
+   3. Si VS Code pide iniciar sesión, usa tu cuenta de GitHub.
+   4. Clic derecho sobre la fila → **Visibilidad del puerto → Pública**. Espera a que la columna diga *Pública*.
+   5. Copia la dirección, con forma de `https://<id>-5005.brs.devtunnels.ms`.
+   6. Verifícala antes de compartirla:
+
+      ```bash
+      ./scripts/verificar-tunel.sh https://<id>-5005.brs.devtunnels.ms
+      ```
+
+      Debe informar `HTTP 200` en `/api/plans`, además del aislamiento con `X-Tenant-Id` y el preflight CORS.
+   7. Comparte la dirección con cada probador **junto con su `tenantId`, siempre por privado**. Nunca se publica en el foro ni en las capturas.
+
+   **Pruebas completas contra el túnel** (mismos scripts que en local):
+
+   ```bash
+   GATEWAY=https://<id>-5005.brs.devtunnels.ms ./scripts/verificar-rutas.sh
+   GATEWAY=https://<id>-5005.brs.devtunnels.ms ./scripts/pruebas-cuentas.sh
+   ```
+
+   Cada probador comprueba su acceso con su cabecera:
+
+   ```bash
+   curl -s https://<id>-5005.brs.devtunnels.ms/api/accounts -H "X-Tenant-Id: <tenantId-privado>"
+   ```
+
+   **Diagnóstico de errores frecuentes:**
+
+   | Síntoma | Causa | Solución |
+   |---|---|---|
+   | `502` con el Gateway accesible en local | El Gateway solo escucha en `127.0.0.1` | Asegurar `http://0.0.0.0:5005` en `launchSettings.json` y reiniciar la tarea |
+   | Tiempo de espera con `0 bytes` | Se reenvió el `5000` (HTTPS con certificado de desarrollo) y el agente habla HTTP | Reenviar el **`5005`**, no el `5000` |
+   | Página de inicio de sesión de Microsoft y "Continuar" girando | El puerto quedó en visión **Privada** | Poner **Visibilidad → Pública** y reabrir la dirección |
+   | `404` en el túnel pero `200` en local | El reenvío apunta a un puerto sin servicio | Comprobar que `5005` está reenviado y escuchando |
+   | Los servicios no aplican un cambio de código | `dotnet watch` dejó de detectar cambios | Reiniciar la tarea (**Ctrl+C** → **Ctrl+Shift+B**) |
+
+   **Alternativa con la CLI**, que mantiene una URL fija durante el día:
 
    ```bash
    ./scripts/tunel.sh preparar   # una vez: login, túnel tuki-gateway y puerto 5005
    ./scripts/tunel.sh            # deja el túnel abierto (Ctrl+C lo detiene)
    ```
 
+   > Para usar la CLI hay que instalarla primero y hacer login una vez:
+   >
+   > ```bash
+   > curl -sL https://aka.ms/DevTunnelCliInstall | bash   # el binario queda en ~/bin
+   > chmod +x ~/bin/devtunnel                             # el instalador no siempre lo hace
+   > export PATH="$HOME/bin:$PATH"                        # para que tunel.sh lo encuentre
+   > ~/bin/devtunnel user login -d                        # imprime el código de acceso
+   > ```
+   >
+   > El instalador intenta usar `sudo` para agregar la herramienta al PATH; no hace falta, porque el binario ya queda en el directorio de usuario.
+
    Desde VS Code también están listas las tareas (**Terminal → Ejecutar tarea…**): `tuki: backend` (Ctrl+Shift+B), `tuki: preparar túnel (una vez)`, `tuki: backend + túnel (CLI)` y `tuki: verificar rutas`.
 
-   Las pruebas contra el túnel se corren igual que contra localhost:
+   **Documentación que ven los probadores:** Scalar se sirve en `https://<id>-5005.brs.devtunnels.ms/scalar/` (sin barra final redirige a esa misma ruta). Los documentos OpenAPI no declaran hosts absolutos y el Gateway usa la URL base dinámica de Scalar, así que las llamadas salen contra la dirección por la que se abrió la página (local o túnel) en lugar de contra `localhost:510x`.
 
-   ```bash
-   GATEWAY=https://<direccion-del-tunel> ./scripts/pruebas-cuentas.sh
-   ```
+   **Durante la ventana de pruebas deben seguir corriendo dos cosas**: la tarea del backend y el reenvío del puerto `5005`. Si se cierra alguna, la dirección deja de responder.
 
 ---
 
