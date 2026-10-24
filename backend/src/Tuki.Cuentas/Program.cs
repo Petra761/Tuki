@@ -28,7 +28,22 @@ builder
 builder.Services.AddOpenApi();
 builder.Services.AddOpenApi(
     "publico",
-    options => options.AddDocumentTransformer<SegmentoPublicoTransformer>()
+    options =>
+    {
+        // Quita el segmento /cuentas de las rutas para que coincidan con las rutas
+        // públicas del Gateway (/api/accounts, etc.)
+        options.AddDocumentTransformer<SegmentoPublicoTransformer>();
+
+        // Sin hosts absolutos: Scalar solo calcula la URL base dinámica con rutas
+        // relativas, así las pruebas por el devtunnel apuntan al túnel y no a localhost
+        options.AddDocumentTransformer(
+            (documento, contexto, cancelacion) =>
+            {
+                documento.Servers = [];
+                return Task.CompletedTask;
+            }
+        );
+    }
 );
 builder.Services.AddSingleton(new ConexionesTenant(builder.Configuration, servicio));
 

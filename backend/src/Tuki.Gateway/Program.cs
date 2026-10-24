@@ -36,7 +36,8 @@ if (app.Environment.IsDevelopment())
             .AddDocument("cuentas", "Cuentas", "/openapi/cuentas.json")
             .AddDocument("movimientos", "Movimientos", "/openapi/movimientos.json")
             .AddDocument("presupuestos", "Presupuestos", "/openapi/presupuestos.json")
-            .AddServer("https://localhost:5000", "Gateway");
+            // Toma la URL base de la petición actual, así funciona igual en localhost y en el devtunnel
+            .WithDynamicBaseServerUrl();
     });
 }
 
