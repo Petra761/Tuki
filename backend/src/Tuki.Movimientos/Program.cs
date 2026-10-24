@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -11,7 +12,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string servicio = "movimientos";
 
-builder.Services.AddControllers();
+// Los enums del dominio viajan como texto (type: "Expense") para que el
+// contrato JSON no dependa de los valores numéricos del backend
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())
+    );
 builder.Services.AddOpenApi();
 builder.Services.AddOpenApi(
     "publico",

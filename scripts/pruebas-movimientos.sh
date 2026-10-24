@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pruebas del CRUD de tags y shortcuts contra el Gateway.
-# Uso: ./scripts/pruebas-movimientos.sh   (la Parte 4 amplía este script)
+# Pruebas del CRUD de tags, shortcuts y transactions contra el Gateway.
+# Uso: ./scripts/pruebas-movimientos.sh
 set -u
 
 GATEWAY="${GATEWAY:-https://localhost:5000}"
@@ -44,7 +44,11 @@ peticion() {
   fi
 }
 
-id_respuesta() { sed -n 's/.*"id":"\([^"]*\)".*/\1/p' "$TMP/cuerpo"; }
+# Primer "id" del cuerpo: en transacciones el cuerpo trae también los ids de
+# las líneas y un .* codicioso se quedaría con el último
+id_respuesta() {
+  grep -o '"id":"[^"]*"' "$TMP/cuerpo" | head -1 | sed 's/.*"\([^"]*\)"$/\1/'
+}
 
 HORA="$(date +%H%M%S)"
 
@@ -191,6 +195,198 @@ peticion GET "/api/shortcuts?includeArchived=true" "$TENANT_A"
 grep -q "$ATAJO" "$TMP/cuerpo" && ok "includeArchived=true muestra el atajo archivado" \
   || fallo "includeArchived=true no muestra el atajo archivado"
 
+# ------------------------------------------------------------ Transacciones
+# Cuentas propias de esta sección: así las líneas no dependen de las sembradas
+FECHA="$(date +%F)"
+AYER="$(date -d 'yesterday' +%F 2>/dev/null || date -v-1d +%F)"
+
+peticion POST /api/accounts "$TENANT_A" \
+  "{\"Name\":\"Cuenta mov 1 $HORA\",\"AccountTypeId\":\"00000000-0000-0000-0000-000000000001\"}"
+[ "$CODIGO" = "201" ] && ok "POST crea la cuenta 1 para las transacciones (201)" \
+  || fallo "crear la cuenta 1 esperaba 201 y llegó $CODIGO"
+CUENTA_1="$(id_respuesta)"
+
+peticion POST /api/accounts "$TENANT_A" \
+  "{\"Name\":\"Cuenta mov 2 $HORA\",\"AccountTypeId\":\"00000000-0000-0000-0000-000000000001\"}"
+[ "$CODIGO" = "201" ] && ok "POST crea la cuenta 2 para las transacciones (201)" \
+  || fallo "crear la cuenta 2 esperaba 201 y llegó $CODIGO"
+CUENTA_2="$(id_respuesta)"
+
+peticion POST /api/tags "$TENANT_A" "{\"Name\":\"Prueba tag trans $HORA\"}"
+[ "$CODIGO" = "201" ] && ok "POST crea el marcador de las transacciones (201)" \
+  || fallo "crear el marcador de las transacciones esperaba 201 y llegó $CODIGO"
+TAG_MOV="$(id_respuesta)"
+
+# Gasto con dos líneas y un marcador: el tipo se deduce de las líneas
+GASTO_DESC="Compra mercado $HORA"
+GASTO_BODY="{\"Description\":\"$GASTO_DESC\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-4050},{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-150}],\"TagIds\":[\"$TAG_MOV\"]}"
+peticion POST /api/transactions "$TENANT_A" "$GASTO_BODY"
+if [ "$CODIGO" = "201" ] && grep -qi "^location:" "$TMP/cab" && grep -q '"type":"Expense"' "$TMP/cuerpo"; then
+  ok "POST crea un gasto con 2 líneas y marcador (201 y type Expense)"
+else
+  fallo "POST de gasto esperaba 201 con type Expense y llegó $CODIGO"
+fi
+GASTO="$(id_respuesta)"
+
+peticion GET /api/transactions "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "GET /api/transactions lista el registro" \
+  || fallo "GET /api/transactions no incluye $GASTO"
+
+peticion GET "/api/transactions/$GASTO" "$TENANT_A"
+if [ "$CODIGO" = "200" ] && grep -q "$GASTO_DESC" "$TMP/cuerpo" &&
+  grep -q "\"amountCents\":-4050" "$TMP/cuerpo" && grep -q "\"amountCents\":-150" "$TMP/cuerpo" &&
+  grep -q "$TAG_MOV" "$TMP/cuerpo"; then
+  ok "GET /api/transactions/{id} devuelve líneas y marcador"
+else
+  fallo "GET /api/transactions/{id} no devolvió las líneas y el marcador (código $CODIGO)"
+fi
+
+# Filtros del listado
+peticion GET "/api/transactions?search=$HORA" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "filtro search encuentra la descripción" \
+  || fallo "filtro search no encontró la transacción"
+peticion GET "/api/transactions?search=zzzsincoincidencia$HORA" "$TENANT_A"
+grep -q '"total":0' "$TMP/cuerpo" && ok "filtro search sin coincidencias da total 0" \
+  || fallo "filtro search sin coincidencias no devolvió total 0"
+peticion GET "/api/transactions?from=$FECHA" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "filtro from devuelve la transacción de hoy" \
+  || fallo "filtro from no incluyó la transacción"
+peticion GET "/api/transactions?to=$AYER" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && fallo "filtro to de ayer incluye la transacción de hoy" \
+  || ok "filtro to de ayer excluye la transacción de hoy"
+peticion GET "/api/transactions?accountId=$CUENTA_1" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "filtro accountId encuentra la transacción" \
+  || fallo "filtro accountId no encontró la transacción"
+peticion GET "/api/transactions?accountId=$CUENTA_2" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && fallo "filtro accountId de otra cuenta incluye el gasto" \
+  || ok "filtro accountId de otra cuenta excluye el gasto"
+peticion GET "/api/transactions?categoryId=$CAT_ALIMENTACION" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "filtro categoryId encuentra la transacción" \
+  || fallo "filtro categoryId no encontró la transacción"
+peticion GET "/api/transactions?tagId=$TAG_MOV" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && ok "filtro tagId encuentra la transacción" \
+  || fallo "filtro tagId no encontró la transacción"
+
+# Paginación: pageSize 1 y tope máximo de 200
+peticion GET "/api/transactions?pageSize=1&page=1" "$TENANT_A"
+grep -q '"page":1,"pageSize":1,' "$TMP/cuerpo" && ok "pageSize=1 respeta el tamaño de página" \
+  || fallo "pageSize=1 no devolvió pageSize 1"
+peticion GET "/api/transactions?pageSize=999" "$TENANT_A"
+grep -q '"pageSize":200,' "$TMP/cuerpo" && ok "pageSize=999 se limita a 200" \
+  || fallo "pageSize=999 no se limitó a 200"
+
+# Ingreso: una sola línea positiva con categoría
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Sueldo $HORA\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_2\",\"CategoryId\":\"00000000-0000-0000-0000-000000000108\",\"AmountCents\":7000}]}"
+if [ "$CODIGO" = "201" ] && grep -q '"type":"Income"' "$TMP/cuerpo"; then
+  ok "POST crea un ingreso (201 y type Income)"
+else
+  fallo "POST de ingreso esperaba 201 con type Income y llegó $CODIGO"
+fi
+INGRESO="$(id_respuesta)"
+[ -n "$INGRESO" ] && peticion DELETE "/api/transactions/$INGRESO" "$TENANT_A"
+
+# Traslado válido e inválido
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Traslado $HORA\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"AmountCents\":-1000},{\"AccountId\":\"$CUENTA_2\",\"AmountCents\":1000}]}"
+if [ "$CODIGO" = "201" ] && grep -q '"type":"Transfer"' "$TMP/cuerpo"; then
+  ok "POST crea un traslado que suma 0 (201 y type Transfer)"
+else
+  fallo "POST de traslado esperaba 201 con type Transfer y llegó $CODIGO"
+fi
+TRASLADO="$(id_respuesta)"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Traslado descuadrado\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"AmountCents\":-1000},{\"AccountId\":\"$CUENTA_2\",\"AmountCents\":900}]}"
+[ "$CODIGO" = "400" ] && ok "POST de traslado que no suma 0 responde 400" \
+  || fallo "traslado descuadrado esperaba 400 y llegó $CODIGO"
+
+# Apertura: una sola línea sin categoría y una por cuenta
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Apertura $HORA\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_2\",\"AmountCents\":5000}]}"
+if [ "$CODIGO" = "201" ] && grep -q '"type":"Opening"' "$TMP/cuerpo"; then
+  ok "POST crea una apertura (201 y type Opening)"
+else
+  fallo "POST de apertura esperaba 201 con type Opening y llegó $CODIGO"
+fi
+APERTURA="$(id_respuesta)"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Segunda apertura\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_2\",\"AmountCents\":100}]}"
+[ "$CODIGO" = "409" ] && ok "segunda apertura en la misma cuenta responde 409" \
+  || fallo "segunda apertura esperaba 409 y llegó $CODIGO"
+
+# Validaciones
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Sin líneas\",\"OccurredOn\":\"$FECHA\",\"Lines\":[]}"
+[ "$CODIGO" = "400" ] && ok "POST sin líneas responde 400" \
+  || fallo "POST sin líneas esperaba 400 y llegó $CODIGO"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Importe cero\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":0}]}"
+[ "$CODIGO" = "400" ] && ok "POST con importe 0 responde 400" \
+  || fallo "POST con importe 0 esperaba 400 y llegó $CODIGO"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Marcador inexistente\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-100}],\"TagIds\":[\"$(guid)\"]}"
+[ "$CODIGO" = "400" ] && ok "POST con marcador inexistente responde 400" \
+  || fallo "marcador inexistente esperaba 400 y llegó $CODIGO"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Marcador repetido\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-100}],\"TagIds\":[\"$TAG_MOV\",\"$TAG_MOV\"]}"
+[ "$CODIGO" = "400" ] && ok "POST con marcador repetido responde 400" \
+  || fallo "marcador repetido esperaba 400 y llegó $CODIGO"
+
+# $TAG quedó archivado en la sección de marcadores
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Marcador archivado\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-100}],\"TagIds\":[\"$TAG\"]}"
+[ "$CODIGO" = "400" ] && ok "POST con marcador archivado responde 400" \
+  || fallo "marcador archivado esperaba 400 y llegó $CODIGO"
+
+peticion POST /api/transactions "$TENANT_A" \
+  "{\"Description\":\"Líneas mezcladas\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-100},{\"AccountId\":\"$CUENTA_2\",\"AmountCents\":100}]}"
+[ "$CODIGO" = "400" ] && ok "POST con líneas mezcladas responde 400" \
+  || fallo "líneas mezcladas esperaba 400 y llegó $CODIGO"
+
+# Aislamiento entre tenants
+peticion GET "/api/transactions?search=$HORA" "$TENANT_B"
+grep -q "$GASTO" "$TMP/cuerpo" && fallo "el tenant B ve la transacción del tenant A" \
+  || ok "el tenant B no ve la transacción del tenant A"
+peticion GET "/api/transactions/$GASTO" "$TENANT_B"
+[ "$CODIGO" = "404" ] && ok "GET del tenant B responde 404" \
+  || fallo "GET del tenant B esperaba 404 y llegó $CODIGO"
+peticion PUT "/api/transactions/$GASTO" "$TENANT_B" "$GASTO_BODY"
+[ "$CODIGO" = "404" ] && ok "PUT del tenant B responde 404" \
+  || fallo "PUT del tenant B esperaba 404 y llegó $CODIGO"
+peticion DELETE "/api/transactions/$GASTO" "$TENANT_B"
+[ "$CODIGO" = "404" ] && ok "DELETE del tenant B responde 404" \
+  || fallo "DELETE del tenant B esperaba 404 y llegó $CODIGO"
+
+peticion GET "/api/transactions/$(guid)" "$TENANT_A"
+[ "$CODIGO" = "404" ] && ok "GET de una transacción inexistente responde 404" \
+  || fallo "GET inexistente esperaba 404 y llegó $CODIGO"
+
+# Actualización: cambia la descripción y deja una sola línea
+peticion PUT "/api/transactions/$GASTO" "$TENANT_A" \
+  "{\"Description\":\"$GASTO_DESC editada\",\"OccurredOn\":\"$FECHA\",\"Lines\":[{\"AccountId\":\"$CUENTA_1\",\"CategoryId\":\"$CAT_ALIMENTACION\",\"AmountCents\":-2000}],\"TagIds\":[]}"
+if [ "$CODIGO" = "200" ] && grep -q "editada" "$TMP/cuerpo" &&
+  grep -q "\"amountCents\":-2000" "$TMP/cuerpo" &&
+  ! grep -q "\"amountCents\":-150" "$TMP/cuerpo"; then
+  ok "PUT /api/transactions/{id} reemplaza descripción, líneas y marcadores"
+else
+  fallo "PUT /api/transactions/{id} no reemplazó bien (código $CODIGO)"
+fi
+
+peticion DELETE "/api/transactions/$GASTO" "$TENANT_A"
+[ "$CODIGO" = "204" ] && ok "DELETE /api/transactions/{id} responde 204" \
+  || fallo "DELETE esperaba 204 y llegó $CODIGO"
+peticion GET "/api/transactions/$GASTO" "$TENANT_A"
+[ "$CODIGO" = "404" ] && ok "la transacción eliminada responde 404" \
+  || fallo "la transacción eliminada esperaba 404 y llegó $CODIGO"
+peticion GET "/api/transactions?search=$HORA" "$TENANT_A"
+grep -q "$GASTO" "$TMP/cuerpo" && fallo "la transacción eliminada sigue en la lista" \
+  || ok "la transacción eliminada ya no aparece en la lista"
+
 # ------------------------------------------------------------------ Limpieza
 if [ -n "$TAG_2" ]; then
   peticion DELETE "/api/tags/$TAG_2" "$TENANT_A"
@@ -198,8 +394,28 @@ if [ -n "$TAG_2" ]; then
     || fallo "limpieza: DELETE del segundo marcador devolvió $CODIGO"
 fi
 
+for TRANSACCION in "$TRASLADO" "$APERTURA"; do
+  if [ -n "$TRANSACCION" ]; then
+    peticion DELETE "/api/transactions/$TRANSACCION" "$TENANT_A"
+    [ "$CODIGO" = "204" ] && ok "limpieza: transacción $TRANSACCION eliminada" \
+      || fallo "limpieza: DELETE de $TRANSACCION devolvió $CODIGO"
+  fi
+done
+
+peticion DELETE "/api/tags/$TAG_MOV" "$TENANT_A"
+[ "$CODIGO" = "204" ] && ok "limpieza: marcador de las transacciones dado de baja" \
+  || fallo "limpieza: DELETE del marcador devolvió $CODIGO"
+
+for CUENTA in "$CUENTA_1" "$CUENTA_2"; do
+  if [ -n "$CUENTA" ]; then
+    peticion DELETE "/api/accounts/$CUENTA" "$TENANT_A"
+    [ "$CODIGO" = "204" ] && ok "limpieza: cuenta $CUENTA dada de baja" \
+      || fallo "limpieza: DELETE de $CUENTA devolvió $CODIGO"
+  fi
+done
+
 echo "Hora $HORA - tenant A $TENANT_A - resumen: fallos=$fallos"
 if [ "$fallos" -gt 0 ]; then
   exit 1
 fi
-echo "Todas las comprobaciones de tags y shortcuts pasaron."
+echo "Todas las comprobaciones de tags, atajos y transacciones pasaron."
