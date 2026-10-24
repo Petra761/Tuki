@@ -316,6 +316,8 @@ curl -I https://localhost:5102
 
    La vía más corta es el panel **Puertos** de VS Code, que trae el reenvío con Microsoft dev tunnels integrado (sin instalar extensiones):
 
+   > El Gateway debe escuchar en `0.0.0.0:5005` y no solo en `localhost`, porque el agente del túnel reenvía hacia la IP local de la máquina (`192.168.x.x`) y no hacia `127.0.0.1`. Si el reenvío devuelve `502` con el Gateway accesible en local, casi siempre es eso. Por eso `launchSettings.json` declara `http://0.0.0.0:5005`; reinicia la tarea del backend para que tome el cambio. Solo el 5005 queda escuchando en la red local; el 5000 de pruebas sigue en `localhost`.
+
    1. Con el backend corriendo, abre el panel inferior → pestaña **Puertos** → **Reenviar puerto**.
    2. Escribe `5005` (el puerto HTTP del Gateway, pensado para el túnel; el `5000` es HTTPS con certificado de desarrollo y no sirve para reenviar) e inicia sesión con GitHub si VS Code te lo pide.
    3. Con clic derecho sobre la dirección reenviada → **Visibilidad del puerto → Pública**, para que entren los probadores sin cuenta.
