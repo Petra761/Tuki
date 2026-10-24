@@ -17,6 +17,9 @@ public class PlanRequest
     public int? DurationDays { get; set; }
 
     public bool IsAvailable { get; set; } = true;
+
+    // true cuando el plan no muestra anuncios (planes de pago)
+    public bool RemovesAds { get; set; }
 }
 
 public record PlanResponse(
@@ -25,6 +28,7 @@ public record PlanResponse(
     long PriceCents,
     int? DurationDays,
     bool IsAvailable,
+    bool RemovesAds,
     DateTimeOffset CreatedAt
 )
 {
@@ -35,6 +39,7 @@ public record PlanResponse(
             plan.PriceCents,
             plan.DurationDays,
             plan.IsAvailable,
+            plan.RemovesAds,
             plan.CreatedAt
         );
 }

@@ -4,12 +4,14 @@
 
 La migración del Administrador inserta o actualiza por nombre estos cuatro planes, así todo el que levante el proyecto obtiene los mismos. Los precios se guardan en centavos (`price_cents`, bigint) y `duration_days` nulo significa sin vencimiento.
 
-| Nombre          | Precio            | Duración       | Disponible |
-| --------------- | ----------------- | -------------- | ---------- |
-| Gratis          | 0 (Bs 0)          | sin vencimiento| sí         |
-| Compra única    | 1990 (Bs 19,90)   | sin vencimiento| sí         |
-| Premium mensual | 990 (Bs 9,90)     | 30 días        | sí         |
-| Premium anual   | 7990 (Bs 79,90)   | 365 días       | sí         |
+| Nombre          | Precio            | Duración       | Disponible | Sin anuncios |
+| --------------- | ----------------- | -------------- | ---------- | ------------ |
+| Gratis          | 0 (Bs 0)          | sin vencimiento| sí         | no           |
+| Compra única    | 1990 (Bs 19,90)   | sin vencimiento| sí         | sí           |
+| Premium mensual | 990 (Bs 9,90)     | 30 días        | sí         | sí           |
+| Premium anual   | 7990 (Bs 79,90)   | 365 días       | sí         | sí           |
+
+La columna `removes_ads` la rellena la misma migración: `true` en los tres planes de pago y `false` en Gratis. El estado de la suscripción (`subscription-status`) devuelve `showAds`: es `true` salvo que el usuario tenga una suscripción vigente cuyo plan tenga `removes_ads` en `true`; sin suscripción, vencida o cancelada, vuelve a ser `true`.
 
 Una suscripción a un plan sin vencimiento no tiene `expires_at` y permanece activa mientras no se cancele: no hay renovaciones ni tareas programadas.
 

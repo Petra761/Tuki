@@ -46,12 +46,17 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
                     null,
                     null,
                     null,
+                    true,
                     now
                 )
             );
         }
 
         var (result, reason) = SubscriptionEvaluator.Evaluate(current, now);
+
+        // Solo una suscripción vigente de un plan que quitó los anuncios los
+        // oculta: vencida o cancelada se vuelve a mostrar publicidad
+        var showAds = !(SubscriptionEvaluator.IsActive(current, now) && current.Plan.RemovesAds);
 
         return Ok(
             new SubscriptionStatusResponse(
@@ -63,6 +68,7 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
                 current.StartedAt,
                 current.ExpiresAt,
                 current.Status.ToString(),
+                showAds,
                 now
             )
         );

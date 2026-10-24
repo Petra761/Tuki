@@ -50,6 +50,10 @@ namespace Tuki.Administrador.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("price_cents");
 
+                    b.Property<bool>("RemovesAds")
+                        .HasColumnType("boolean")
+                        .HasColumnName("removes_ads");
+
                     b.HasKey("Id")
                         .HasName("pk_plans");
 

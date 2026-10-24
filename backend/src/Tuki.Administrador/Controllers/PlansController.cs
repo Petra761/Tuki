@@ -53,6 +53,7 @@ public class PlansController(AdminDbContext db) : ControllerBase
             PriceCents = request.PriceCents,
             DurationDays = request.DurationDays,
             IsAvailable = request.IsAvailable,
+            RemovesAds = request.RemovesAds,
             CreatedAt = DateTimeOffset.UtcNow,
         };
 
@@ -78,6 +79,7 @@ public class PlansController(AdminDbContext db) : ControllerBase
         plan.PriceCents = request.PriceCents;
         plan.DurationDays = request.DurationDays;
         plan.IsAvailable = request.IsAvailable;
+        plan.RemovesAds = request.RemovesAds;
         await db.SaveChangesAsync(ct);
 
         return Ok(PlanResponse.From(plan));

@@ -102,6 +102,7 @@ Table provisioning_events {
 // pone is_available en falso, así las suscripciones viejas no se rompen.
 // Los planes oficiales los inserta la migración del Administrador: Gratis (0),
 // Compra única (1990), Premium mensual (30 días, 990) y Premium anual (365 días, 7990).
+// removes_ads la fija esa misma migración: la llevan los tres planes de pago.
 Table plans {
   id Guid [pk]
   name string [not null, unique]
@@ -114,6 +115,10 @@ Table plans {
   duration_days int
   // Si es falso, el plan no admite nuevas suscripciones.
   is_available bool [not null]
+  // true si el plan no muestra anuncios: lo llevan Compra única, Premium
+  // mensual y Premium anual; en Gratis queda false. El estado de la
+  // suscripción expone showAds a partir de este campo y de que siga vigente.
+  removes_ads bool [not null]
   created_at DateTimeOffset [not null]
 }
 
