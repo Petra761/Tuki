@@ -101,15 +101,27 @@ public class AccountsController(CuentasDbContext db) : ControllerBase
             return BadRequest(new { error = "El tipo de cuenta no existe o está archivado." });
         }
 
-        // El índice único filtrado solo admite una cuenta predeterminada: la marca
-        // se quita a la anterior y se pone a esta en un único SaveChanges
+        // El índice único filtrado solo admite una fila con is_default = true.
+        // Primero se libera la marca de la anterior (en la misma transacción) y
+        // recién entonces se reclama la nueva: si ambas cosas viajaran en un
+        // solo SaveChanges, el orden de los UPDATE no está garantizado y el
+        // índice tiraría una violación transitoria
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
         if (request.IsDefault && !account.IsDefault)
         {
-            var defaults = await db.Accounts.Where(a => a.IsDefault && a.Id != id).ToListAsync(ct);
+            var previousDefaults = await db
+                .Accounts.Where(a => a.IsDefault && a.Id != id)
+                .ToListAsync(ct);
 
-            foreach (var previous in defaults)
+            if (previousDefaults.Count > 0)
             {
-                previous.IsDefault = false;
+                foreach (var previous in previousDefaults)
+                {
+                    previous.IsDefault = false;
+                }
+
+                await db.SaveChangesAsync(ct);
             }
         }
 
@@ -120,6 +132,8 @@ public class AccountsController(CuentasDbContext db) : ControllerBase
         account.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+
         return Ok(AccountResponse.From(account, type.Name));
     }
 
