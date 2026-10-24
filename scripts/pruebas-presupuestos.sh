@@ -5,7 +5,12 @@ set -u
 
 GATEWAY="${GATEWAY:-https://localhost:5000}"
 
-if [ -z "${TENANT_A:-}" ] || [ -z "${TENANT_B:-}" ]; then
+# Usuarios de prueba de la tarea 5 (registrados en el Administrador); se pueden
+# sobreescribir por entorno para correr las pruebas contra otros tenants
+TENANT_A="${TENANT_A:-890d174a-0c1f-4945-b6c5-bbe38d169d1f}"
+TENANT_B="${TENANT_B:-3ad791be-7905-4252-81b6-7ff62cbb890e}"
+
+if [ -z "$TENANT_A" ] || [ -z "$TENANT_B" ]; then
   echo "Faltan TENANT_A y TENANT_B. Ejemplo: TENANT_A=<guid> TENANT_B=<guid> $0"
   exit 2
 fi
