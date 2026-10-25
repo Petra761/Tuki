@@ -15,7 +15,6 @@ export const colors = {
   onPrimary: "#0E1F1A",
   // Gastos y errores; los ingresos usan el color primario
   danger: "#FF6A4D",
-  // Equivale a --linea de la landing: el color del texto al 12 % de opacidad
 } as const;
 
 // Cada peso es una fuente distinta: los nombres deben coincidir con los que se cargan en el layout raíz.
