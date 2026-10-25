@@ -54,6 +54,7 @@ builder.Services.AddDbContext<AdminDbContext>(options =>
     options.UseNpgsql(connection.ConnectionString).UseSnakeCaseNamingConvention();
 });
 
+// Configuración y servicio para emitir los tokens de acceso del login
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddSingleton<TokenService>();
 
