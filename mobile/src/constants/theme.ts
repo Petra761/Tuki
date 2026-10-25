@@ -5,7 +5,8 @@ export const colors = {
   backgroundDeep: "#0A1311",
   surface: "#15302A",
   surfaceAlt: "#1D3D2F",
-  border: "#2A3A35",
+  // Equivale a --linea de la landing: el color del texto al 12 % de opacidad
+  border: "rgba(241, 244, 238, 0.12)",
   text: "#F1F4EE",
   textMuted: "#8CA096",
   textDim: "#4A5E56",
@@ -14,4 +15,5 @@ export const colors = {
   onPrimary: "#0E1F1A",
   // Gastos y errores; los ingresos usan el color primario
   danger: "#FF6A4D",
+  // Equivale a --linea de la landing: el color del texto al 12 % de opacidad
 } as const;
