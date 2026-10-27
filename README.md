@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="./mobile/assets/images/icon.png" alt="Logo de Tuki" width="96" />
+
 ### Plataforma de Registro Contable Personal Multitenant
 
 [![Licencia](https://img.shields.io/badge/Licencia-Privada-grey?style=flat-square)](#10-licencia-y-propiedad)
