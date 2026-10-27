@@ -9,6 +9,7 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0E1F1A",
     "android": {
+      "package": "com.petra761.tuki",
       "adaptiveIcon": {
         "backgroundColor": "#C8F25A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

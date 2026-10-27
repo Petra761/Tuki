@@ -1,0 +1,98 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/android-apk.yml"
+      - "mobile/**"
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: HTTPS Dev Tunnel URL forwarded to local port 5005
+        required: true
+        default: https://ffh8k5rn-5005.brs.devtunnels.ms
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish test APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url || 'https://ffh8k5rn-5005.brs.devtunnels.ms' }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate Dev Tunnel URL
+        run: |
+          node -e '
+            const url = new URL(process.env.EXPO_PUBLIC_API_URL);
+            if (url.protocol !== "https:" || !url.hostname.endsWith(".devtunnels.ms")) {
+              throw new Error("Provide an HTTPS Dev Tunnel URL ending in .devtunnels.ms");
+            }
+          '
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-37" "build-tools;37.0.0" "ndk;27.1.12297006"
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Verify APK signature
+        run: |
+          set -euo pipefail
+          apk=$(find android/app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)
+          if [ -z "$apk" ]; then
+            echo "Gradle did not produce an APK."
+            exit 1
+          fi
+
+          apksigner="$ANDROID_HOME/build-tools/37.0.0/apksigner"
+          cp "$apk" "$RUNNER_TEMP/Tuki-test.apk"
+          "$apksigner" verify "$RUNNER_TEMP/Tuki-test.apk"
+
+      - name: Publish GitHub release
+        working-directory: .
+        run: |
+          tag="android-test-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" \
+            "$RUNNER_TEMP/Tuki-test.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Tuki Android test ${GITHUB_RUN_NUMBER}" \
+            --notes "Test APK configured for ${EXPO_PUBLIC_API_URL}. The Dev Tunnel must be active to connect." \
+            --prerelease
