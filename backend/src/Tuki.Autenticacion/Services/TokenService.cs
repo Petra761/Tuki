@@ -3,10 +3,10 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Tuki.Administrador.Models;
-using Tuki.Administrador.Options;
+using Tuki.Autenticacion.Models;
+using Tuki.Autenticacion.Options;
 
-namespace Tuki.Administrador.Services;
+namespace Tuki.Autenticacion.Services;
 
 public class TokenService(IOptions<JwtOptions> options)
 {

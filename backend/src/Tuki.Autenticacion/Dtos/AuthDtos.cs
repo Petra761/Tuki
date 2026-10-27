@@ -1,4 +1,4 @@
-namespace Tuki.Administrador.Dtos;
+namespace Tuki.Autenticacion.Dtos;
 
 public record UserSummary(
     Guid Id,

@@ -4,6 +4,8 @@ using Npgsql;
 using Scalar.AspNetCore;
 using Tuki.Autenticacion.Data;
 using Tuki.Autenticacion.OpenApi;
+using Tuki.Autenticacion.Options;
+using Tuki.Autenticacion.Services;
 
 Env.TraversePath().Load();
 
@@ -48,6 +50,19 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
     };
 
     options.UseNpgsql(connection.ConnectionString).UseSnakeCaseNamingConvention();
+});
+
+// Configuración y servicio para emitir los tokens de acceso del login.
+// La clave es la misma Jwt__Key que usa el Gateway para validarlos
+if (string.IsNullOrWhiteSpace(builder.Configuration["Jwt:Key"]))
+    throw new InvalidOperationException("Falta Jwt__Key en el .env de la raíz.");
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddSingleton<TokenService>();
+
+// El estado de un tenant solo lo conoce el Administrador; el login lo consulta allí
+builder.Services.AddHttpClient<AdministradorClient>(client =>
+{
+    client.BaseAddress = new Uri(Required("Tuki:Servicios:Administrador"));
 });
 
 var app = builder.Build();

@@ -1,4 +1,4 @@
-namespace Tuki.Administrador.Options;
+namespace Tuki.Autenticacion.Options;
 
 public class JwtOptions
 {

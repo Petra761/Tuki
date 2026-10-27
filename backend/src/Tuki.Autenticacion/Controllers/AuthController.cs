@@ -1,27 +1,32 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Tuki.Administrador.Data;
-using Tuki.Administrador.Dtos;
-using Tuki.Administrador.Models;
-using Tuki.Administrador.Services;
+using Tuki.Autenticacion.Data;
+using Tuki.Autenticacion.Dtos;
+using Tuki.Autenticacion.Models;
+using Tuki.Autenticacion.Services;
 
-namespace Tuki.Administrador.Controllers;
+namespace Tuki.Autenticacion.Controllers;
 
 [ApiController]
-[Route("api/admin/auth")]
-public class AuthController(AdminDbContext db, TokenService tokens) : ControllerBase
+[Route("api/autenticacion/auth")]
+public class AuthController(
+    AuthDbContext db,
+    TokenService tokens,
+    AdministradorClient administrador
+) : ControllerBase
 {
     private const int MaxFailedAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
+
+    // El nombre del estado activo del tenant, según lo que devuelve el Administrador
+    private const string EstadoTenantActivo = "Active";
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken ct)
     {
         var email = request.Email.Trim().ToLowerInvariant();
-        var user = await db
-            .Users.Include(u => u.Tenant)
-            .FirstOrDefaultAsync(u => u.Email == email, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct);
 
         // Mismo mensaje si el correo no existe o la contraseña falla,
         // para no revelar qué correos están registrados
@@ -52,8 +57,24 @@ public class AuthController(AdminDbContext db, TokenService tokens) : Controller
             return Unauthorized(new { error = "Correo o contraseña incorrectos." });
         }
 
-        // Sin bases aprovisionadas, los servicios de negocio no tienen dónde guardar datos
-        if (user.Tenant.Status != TenantStatus.Active)
+        // Sin bases aprovisionadas, los servicios de negocio no tienen dónde guardar datos.
+        // El estado del tenant lo guarda el Administrador: se le consulta antes de emitir
+        // el token; un tenant desconocido (null) también se trata como "no activo"
+        string? tenantStatus;
+        try
+        {
+            tenantStatus = await administrador.ObtenerEstadoTenantAsync(user.TenantId, ct);
+        }
+        catch (HttpRequestException)
+        {
+            // El Administrador no respondió: no se puede saber el estado del tenant
+            return StatusCode(
+                502,
+                new { error = "No se pudo verificar el estado de tu cuenta. Intenta de nuevo." }
+            );
+        }
+
+        if (tenantStatus != EstadoTenantActivo)
             return Conflict(new { error = "Tu cuenta aún se está preparando. Intenta de nuevo." });
 
         user.FailedLoginAttempts = 0;
