@@ -49,12 +49,24 @@ builder.Services.AddAuthorization(options =>
 var origenesPermitidos =
     builder.Configuration.GetSection("Tuki:Cors:Origenes").Get<string[]>() ?? [];
 
+bool OrigenPermitido(string origin)
+{
+    if (origenesPermitidos.Contains(origin, StringComparer.OrdinalIgnoreCase))
+    {
+        return true;
+    }
+
+    return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && uri.Host.EndsWith(".on.expo.app", StringComparison.OrdinalIgnoreCase);
+}
+
 builder.Services.AddCors(options =>
     options.AddPolicy(
         "tuki",
         politica =>
             politica
-                .WithOrigins(origenesPermitidos)
+                .SetIsOriginAllowed(OrigenPermitido)
                 // X-Tenant-Id es la cabecera con la que cada cliente identifica su base
                 .WithHeaders("Content-Type", "X-Tenant-Id", "Authorization")
                 .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

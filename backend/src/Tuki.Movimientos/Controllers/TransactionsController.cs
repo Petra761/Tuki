@@ -114,10 +114,13 @@ public class TransactionsController(MovimientosDbContext db) : ControllerBase
         }
 
         var lines = request.Lines ?? [];
-        var conflict = await OpeningConflict(lines, Guid.Empty, ct);
-        if (conflict is not null)
+        if (type == TransactionType.Opening)
         {
-            return Conflict(new { error = conflict });
+            var conflict = await OpeningConflict(lines, Guid.Empty, ct);
+            if (conflict is not null)
+            {
+                return Conflict(new { error = conflict });
+            }
         }
 
         var tagIds = request.TagIds ?? [];
@@ -176,10 +179,13 @@ public class TransactionsController(MovimientosDbContext db) : ControllerBase
         }
 
         var lines = request.Lines ?? [];
-        var conflict = await OpeningConflict(lines, id, ct);
-        if (conflict is not null)
+        if (type == TransactionType.Opening)
         {
-            return Conflict(new { error = conflict });
+            var conflict = await OpeningConflict(lines, id, ct);
+            if (conflict is not null)
+            {
+                return Conflict(new { error = conflict });
+            }
         }
 
         var tagIds = request.TagIds ?? [];
