@@ -26,24 +26,12 @@ export const fontFamily = {
   bodyBold: "Onest_700Bold",
 } as const;
 
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-} as const;
+export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
 
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 20,
-  full: 999,
-} as const;
+export const radius = { sm: 8, md: 12, lg: 20, full: 999 } as const;
 
-export const fontSize = {
-  sm: 13,
-  md: 16,
-  lg: 20,
-  xl: 28,
-} as const;
+// xxl es para los importes grandes de las pantallas de resumen
+export const fontSize = { sm: 13, md: 16, lg: 20, xl: 28, xxl: 38 } as const;
+
+// Colores de las porciones del gráfico circular; el primero es el lima de la marca
+export const chartColors = ["#C8F25A", "#5EC9A4", "#E8C468", "#FF6A4D", "#7DA8E8", "#B58FE6"] as const;

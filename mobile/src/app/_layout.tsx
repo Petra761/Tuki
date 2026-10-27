@@ -1,45 +1,59 @@
+import { useEffect } from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
 import { BricolageGrotesque_700Bold } from "@expo-google-fonts/bricolage-grotesque";
 import {
   Onest_400Regular,
   Onest_500Medium,
   Onest_700Bold,
 } from "@expo-google-fonts/onest";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { AuthProvider, useAuth } from "@/auth/AuthContext";
+import { colors } from "@/theme";
 
-import { colors } from "@/constants/theme";
+// La pantalla de carga se mantiene hasta tener las fuentes y la sesión guardada
+void SplashScreen.preventAutoHideAsync();
 
-// La pantalla de carga se queda visible hasta que las fuentes estén listas,
-// para que el texto no aparezca primero con la tipografía del sistema
-SplashScreen.preventAutoHideAsync();
+function Gate({ fontsLoaded }: { fontsLoaded: boolean }) {
+  const { session, loading } = useAuth();
+  const ready = fontsLoaded && !loading;
+
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [fontsLoaded] = useFonts({
     BricolageGrotesque_700Bold,
     Onest_400Regular,
     Onest_500Medium,
     Onest_700Bold,
   });
 
-  useEffect(() => {
-    // Si una fuente falla se muestra la app igual, con la tipografía del sistema
-    if (fontsLoaded || fontError) SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
-
   return (
-    <>
+    <AuthProvider>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      />
-    </>
+      <Gate fontsLoaded={fontsLoaded} />
+    </AuthProvider>
   );
 }

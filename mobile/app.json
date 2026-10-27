@@ -2,19 +2,19 @@
   "expo": {
     "name": "Tuki",
     "slug": "tuki",
-    "version": "1.0.0",
-    "orientation": "portrait",
+    "version": "0.1.0",
     "icon": "./assets/images/icon.png",
     "scheme": "tuki",
+    "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E1F1A",
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#C8F25A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+      }
     },
     "plugins": [
       "expo-router",
@@ -26,10 +26,6 @@
           "imageWidth": 120
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+    ]
   }
 }
