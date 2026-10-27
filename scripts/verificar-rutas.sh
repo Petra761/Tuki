@@ -5,7 +5,7 @@
 set -u
 
 BASE_URL="${1:-https://localhost:5000}"
-SERVICIOS=(administrador cuentas movimientos presupuestos)
+SERVICIOS=(administrador autenticacion cuentas movimientos presupuestos)
 
 fallos=0
 

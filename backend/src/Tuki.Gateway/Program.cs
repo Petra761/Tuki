@@ -19,7 +19,7 @@ var jwtKey = jwt["Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("Falta Jwt__Key en el .env de la raíz.");
 
-// Los valores de emisor y audiencia deben coincidir con los que usa el Administrador al emitir el token
+// Los valores de emisor y audiencia deben coincidir con los que usa el servicio de Autenticación al emitir el token
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -72,6 +72,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(options =>
         {
             options
+                .AddDocument("autenticacion", "Autenticación", "/openapi/autenticacion.json")
                 .AddDocument("administrador", "Administrador", "/openapi/administrador.json")
                 .AddDocument("cuentas", "Cuentas", "/openapi/cuentas.json")
                 .AddDocument("movimientos", "Movimientos", "/openapi/movimientos.json")

@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      // Los cinco servicios con dotnet watch (Gateway en 5000 HTTPS y 5005 HTTP)
+      // Los seis servicios con dotnet watch (Gateway en 5000 HTTPS y 5005 HTTP)
       "label": "tuki: backend",
       "type": "shell",
       "command": "npm run dev",

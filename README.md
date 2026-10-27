@@ -56,17 +56,20 @@ flowchart TD
     Client["📱 App Móvil / Cliente Web"] -->|HTTPS / JWT| GW["🌐 API Gateway (YARP)<br/>Puerto 5000 /scalar"]
 
     subgraph Backend [Backend Microservicios .NET 10]
-        GW -->|/api/users, /api/plans,<br/>/api/subscriptions, /api/tenants| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
+        GW -->|/api/auth, /api/users<br/>(login y registro)| Auth["🔑 Tuki.Autenticacion<br/>Puerto 5105"]
+        GW -->|/api/plans,<br/>/api/subscriptions, /api/tenants| Admin["🛡️ Tuki.Administrador<br/>Puerto 5101"]
         GW -->|/api/accounts, /api/account-types,<br/>/api/categories<br/>+ X-Tenant-Id| Cuentas["💳 Tuki.Cuentas<br/>Puerto 5102"]
         GW -->|/api/tags, /api/shortcuts,<br/>/api/transactions + X-Tenant-Id| Mov["📊 Tuki.Movimientos<br/>Puerto 5103"]
         GW -->|/api/budgets<br/>+ X-Tenant-Id| Pres["🎯 Tuki.Presupuestos<br/>Puerto 5104"]
 
+        Auth -.->|POST /internal/tenants<br/>GET .../status| Admin
         Admin -.->|POST /internal/tenants/{id}/database| Cuentas
         Admin -.->|POST /internal/tenants/{id}/database| Mov
         Admin -.->|POST /internal/tenants/{id}/database| Pres
     end
 
     subgraph PostgreSQL [Servidor PostgreSQL :5432]
+        Auth --> DBAuth[("🗄️ tuki_autenticacion<br/>(Global)")]
         Admin --> DBAdmin[("🗄️ tuki_admin<br/>(Global)")]
         Cuentas --> DBCuentas[("🗄️ tuki_cuentas_{tenantId}")]
         Mov --> DBMov[("🗄️ tuki_movimientos_{tenantId}")]
@@ -100,7 +103,8 @@ Todos los servicios del backend escuchan exclusivamente a través de **HTTPS** e
 | Servicio | Puerto | Responsabilidad de dominio | Base de datos | Prefijo de API |
 | :--- | :---: | :--- | :--- | :--- |
 | **Tuki.Gateway** | `5000` | Punto de entrada unificado, enrutamiento inverso y catálogo OpenAPI con Scalar | — | `/`, `/scalar`, `/openapi/*` |
-| **Tuki.Administrador** | `5101` | Registro de usuarios, tenants, planes SaaS, suscripciones y aprovisionamiento | `tuki_admin` *(Global)* | `/api/users`, `/api/plans`, `/api/subscriptions`, `/api/tenants` |
+| **Tuki.Administrador** | `5101` | Tenants, aprovisionamiento de bases, planes SaaS y suscripciones | `tuki_admin` *(Global)* | `/api/plans`, `/api/subscriptions`, `/api/tenants` |
+| **Tuki.Autenticacion** | `5105` | Login y registro de usuarios (credenciales y tokens JWT) | `tuki_autenticacion` *(Global)* | `/api/auth`, `/api/users` |
 | **Tuki.Cuentas** | `5102` | Cuentas monetarias, tipos de cuenta y categorías de clasificación | `tuki_cuentas_{tenantId}` | `/api/accounts`, `/api/account-types`, `/api/categories` |
 | **Tuki.Movimientos** | `5103` | Transacciones financieras, líneas de asiento, marcadores y atajos | `tuki_movimientos_{tenantId}` | `/api/tags`, `/api/shortcuts`, `/api/transactions` |
 | **Tuki.Presupuestos** | `5104` | Metas de gasto y límites presupuestarios mensuales por categoría | `tuki_presupuestos_{tenantId}` | `/api/budgets` |
@@ -153,14 +157,19 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     actor U as 👤 Nuevo Usuario
+    participant GW as 🌐 API Gateway
+    participant Auth as 🔑 Tuki.Autenticacion
     participant Admin as 🛡️ Tuki.Administrador
     participant PS as ⚙️ ProvisioningService
     participant C as 💳 Cuentas
     participant M as 📊 Movimientos
     participant P as 🎯 Presupuestos
 
-    U->>Admin: POST /api/users/register
-    Admin->>Admin: Crea Usuario y Tenant (Estado: Provisioning)
+    U->>GW: POST /api/users/register
+    GW->>Auth: /api/autenticacion/users/register
+    Auth->>Auth: Normaliza el correo; 409 si ya existe
+    Auth->>Admin: POST /internal/tenants
+    Admin->>Admin: Crea el Tenant (Estado: Provisioning)
     Admin->>PS: Inicia aprovisionamiento de bases
     par Aprovisionamiento paralelo/secuencial
         PS->>C: POST /internal/tenants/{id}/database
@@ -176,8 +185,10 @@ sequenceDiagram
         P-->>PS: 201 Created / 200 AlreadyExisted
     end
     PS->>Admin: Registra eventos en provisioning_events
-    Admin->>Admin: Actualiza estado del Tenant a 'Active'
-    Admin-->>U: 201 Created (Usuario y Tenant activos)
+    Admin->>Admin: Actualiza estado del Tenant a 'Active' o 'Failed'
+    Admin-->>Auth: 200 { tenantId, status, services }
+    Auth->>Auth: Guarda el usuario con ese tenantId (incluso si status es Failed)
+    Auth-->>U: 201 Created (Active) / 502 (si no está Active)
 ```
 
 ---
@@ -190,13 +201,15 @@ El microservicio **Tuki.Gateway** actúa como fachada única hacia el exterior i
 
 Cada recurso se publica sin el nombre del servicio y el Gateway lo reenvía a la ruta interna con prefijo:
 
-- `/api/users/**`, `/api/plans/**`, `/api/subscriptions/**`, `/api/tenants/**` ➔ `https://localhost:5101/api/admin/<recurso>/**`
+- `/api/auth/**`, `/api/users/**` ➔ `https://localhost:5105/api/autenticacion/<recurso>/**`
+- `/api/plans/**`, `/api/subscriptions/**`, `/api/tenants/**` ➔ `https://localhost:5101/api/admin/<recurso>/**`
 - `/api/accounts/**`, `/api/account-types/**`, `/api/categories/**` ➔ `https://localhost:5102/api/cuentas/<recurso>/**`
 - `/api/tags/**`, `/api/shortcuts/**`, `/api/transactions/**` ➔ `https://localhost:5103/api/movimientos/<recurso>/**`
 - `/api/budgets/**` ➔ `https://localhost:5104/api/presupuestos/budgets/**`
 
 Adicionalmente, el Gateway expone rutas transformadas para obtener las especificaciones OpenAPI de cada microservicio. Apuntan al documento público (`publico`), que muestra las rutas ya sin el segmento del servicio:
 
+- `/openapi/autenticacion.json` ➔ `https://localhost:5105/openapi/publico.json`
 - `/openapi/administrador.json` ➔ `https://localhost:5101/openapi/publico.json`
 - `/openapi/cuentas.json` ➔ `https://localhost:5102/openapi/publico.json`
 - `/openapi/movimientos.json` ➔ `https://localhost:5103/openapi/publico.json`
@@ -208,7 +221,8 @@ Las llamadas por el Gateway no revelan el servicio de origen: cada recurso se pu
 
 | Recurso público     | Servicio        |
 | ------------------- | --------------- |
-| `/api/users`        | Administrador   |
+| `/api/auth`         | Autenticación   |
+| `/api/users`        | Autenticación   |
 | `/api/plans`        | Administrador   |
 | `/api/subscriptions`| Administrador   |
 | `/api/tenants`      | Administrador   |
@@ -232,8 +246,9 @@ Toda la documentación y pruebas de los servicios se gestionan con **Scalar**:
   ```
   https://localhost:5000/scalar
   ```
-  Permite alternar entre los documentos de los 4 microservicios desde una sola interfaz centralizada.
+  Permite alternar entre los documentos de los 5 microservicios desde una sola interfaz centralizada.
 - **Documentación individual por servicio:**
+  - Autenticación: `https://localhost:5105/scalar`
   - Administrador: `https://localhost:5101/scalar`
   - Cuentas: `https://localhost:5102/scalar`
   - Movimientos: `https://localhost:5103/scalar`
@@ -245,7 +260,7 @@ Toda la documentación y pruebas de los servicios se gestionan con **Scalar**:
 
 ## 8. Certificado HTTPS de desarrollo
 
-Todos los servicios del backend escuchan exclusivamente bajo HTTPS en local (`https://localhost:5000` y `5101` a `5104`). Para que los servicios, las herramientas HTTP y el navegador confíen en el certificado de desarrollo, debe instalarse **una vez por equipo**.
+Todos los servicios del backend escuchan exclusivamente bajo HTTPS en local (`https://localhost:5000` y `5101` a `5105`). Para que los servicios, las herramientas HTTP y el navegador confíen en el certificado de desarrollo, debe instalarse **una vez por equipo**.
 
 ### Windows
 
@@ -310,7 +325,7 @@ curl -I https://localhost:5102
    ```bash
    npm run dev
    ```
-   Este comando lanza en paralelo con `dotnet watch` los cinco servicios: Gateway (`5000`), Administrador (`5101`), Cuentas (`5102`), Movimientos (`5103`) y Presupuestos (`5104`).
+   Este comando lanza en paralelo con `dotnet watch` los seis servicios: Gateway (`5000`), Administrador (`5101`), Autenticación (`5105`), Cuentas (`5102`), Movimientos (`5103`) y Presupuestos (`5104`).
 
 5. **Compartir el Gateway con los probadores (Microsoft Dev Tunnels):**
 

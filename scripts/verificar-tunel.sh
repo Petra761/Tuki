@@ -36,6 +36,22 @@ echo "HTTP $CODE"
 [ "$CODE" = "200" ] || { echo "Se esperaba 200."; exit 1; }
 echo
 
+echo "== POST /api/auth/login con correo inexistente (esperado 401) =="
+# 401 significa que el Gateway enrutó hasta Autenticación y esta respondió con
+# el mensaje genérico; cualquier otro codigo indica una ruta mal configurada
+CODE=$(curl -sS -m 30 -o /dev/null -w "%{http_code}" -X POST "$U/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"sin-cuenta@tuki.test","password":"secreto123"}' 2>/dev/null)
+echo "HTTP $CODE"
+[ "$CODE" = "401" ] || { echo "Se esperaba 401."; exit 1; }
+echo
+
+echo "== GET /openapi/autenticacion.json =="
+CODE=$(curl -sS -m 30 -o /dev/null -w "%{http_code}" "$U/openapi/autenticacion.json" 2>/dev/null)
+echo "HTTP $CODE"
+[ "$CODE" = "200" ] || { echo "Se esperaba 200."; exit 1; }
+echo
+
 echo "== GET /api/accounts con X-Tenant-Id (aislamiento) =="
 curl -sS -m 30 -o /dev/null -w "HTTP %{http_code}\n" \
   "$U/api/accounts" -H "X-Tenant-Id: 890d174a-0c1f-4945-b6c5-bbe38d169d1f"
