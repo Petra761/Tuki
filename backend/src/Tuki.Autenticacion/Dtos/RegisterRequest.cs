@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Tuki.Administrador.Dtos;
+namespace Tuki.Autenticacion.Dtos;
 
 public class RegisterRequest
 {

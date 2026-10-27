@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Tuki.Autenticacion.Dtos;
 
 namespace Tuki.Autenticacion.Services;
 
@@ -7,6 +8,20 @@ namespace Tuki.Autenticacion.Services;
 // solo son alcanzables dentro de la máquina.
 public class AdministradorClient(HttpClient http)
 {
+    // Crea un tenant y aprueba sus bases en los servicios de negocio. Si algo
+    // falla allí, el resumen igual llega con el estado y el detalle del fallo
+    public async Task<ProvisioningSummary> CrearTenantAsync(CancellationToken ct)
+    {
+        var respuesta = await http.PostAsync("/internal/tenants", null, ct);
+
+        respuesta.EnsureSuccessStatusCode();
+
+        return await respuesta.Content.ReadFromJsonAsync<ProvisioningSummary>(ct)
+            ?? throw new InvalidOperationException(
+                "El Administrador devolvió una respuesta vacía."
+            );
+    }
+
     // Estado del tenant ("Active", "Provisioning" o "Failed") tal como lo guarda
     // el Administrador; null si el tenant no existe allí
     public async Task<string?> ObtenerEstadoTenantAsync(Guid tenantId, CancellationToken ct)
@@ -27,6 +42,3 @@ public class AdministradorClient(HttpClient http)
         return estado.Status;
     }
 }
-
-// Respuesta de GET /internal/tenants/{tenantId}/status del Administrador
-public record EstadoTenantResponse(Guid TenantId, string Status);
