@@ -13,11 +13,13 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Subscribe(SubscribeRequest request, CancellationToken ct)
     {
-        var user = await db
-            .Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == request.UserId, ct);
-        if (user is null)
-            return NotFound(new { error = "El usuario no existe." });
+        // La tabla de usuarios vive en Autenticación: el tenant del que se
+        // suscribe llega en la cabecera, no se deduce de un usuario
+        if (!CabeceraTenant.TryGet(HttpContext, out var tenantId))
+            return BadRequest(new { error = "Debes enviar un X-Tenant-Id valido." });
+
+        if (!await db.Tenants.AsNoTracking().AnyAsync(t => t.Id == tenantId, ct))
+            return NotFound(new { error = "El tenant no existe." });
 
         var plan = await db
             .Plans.AsNoTracking()
@@ -44,7 +46,7 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
 
         var hasActive = await db.Subscriptions.AnyAsync(
             s =>
-                s.UserId == user.Id
+                s.UserId == request.UserId
                 && s.Status == SubscriptionStatus.Enabled
                 && s.StartedAt <= now
                 && (s.ExpiresAt == null || s.ExpiresAt > now),
@@ -57,9 +59,9 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
         var subscription = new Subscription
         {
             Id = Guid.NewGuid(),
-            UserId = user.Id,
+            UserId = request.UserId,
             PlanId = plan.Id,
-            TenantId = user.TenantId,
+            TenantId = tenantId,
             StartedAt = startedAt,
             ExpiresAt = expiresAt,
             Status = SubscriptionStatus.Enabled,
@@ -91,9 +93,8 @@ public class SubscriptionsController(AdminDbContext db) : ControllerBase
     [HttpGet("~/api/admin/users/{userId:guid}/subscriptions")]
     public async Task<IActionResult> GetByUser(Guid userId, CancellationToken ct)
     {
-        if (!await db.Users.AnyAsync(u => u.Id == userId, ct))
-            return NotFound(new { error = "El usuario no existe." });
-
+        // Sin la tabla de usuarios no se puede distinguir un usuario inexistente
+        // de uno sin suscripciones: siempre se responde la lista (vacía si no hay)
         var subscriptions = await db
             .Subscriptions.AsNoTracking()
             .Include(s => s.Plan)

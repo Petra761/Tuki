@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Pruebas de la Parte 5: planes con removes_ads y showAds en el estado de la
-# suscripción, contra el Gateway. El Administrador no usa X-Tenant-Id (su base
-# es única), así que no hace falta TENANT_A ni TENANT_B.
+# suscripción, contra el Gateway. Las suscripciones y el estado leen el
+# identificador del tenant en la cabecera X-Tenant-Id (la tabla de usuarios ya
+# vive en Autenticación), que aquí se toma del registro.
 # Uso: ./scripts/pruebas-administrador.sh
 set -u
 
@@ -21,6 +22,9 @@ guid() {
   cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "00000000-0000-4000-8000-00000000000$RANDOM"
 }
 
+# Tenant que viaja en X-Tenant-Id; vacío = no enviar la cabecera (para probar el 400)
+TENANT=""
+
 CODIGO=""
 peticion() {
   # método, ruta y JSON opcional; deja el código en CODIGO y el cuerpo en $TMP/cuerpo
@@ -28,6 +32,9 @@ peticion() {
   local args=(-ksS -X "$metodo" -o "$TMP/cuerpo" -D "$TMP/cab" -w '%{http_code}')
   if [ -n "$datos" ]; then
     args+=(-H "Content-Type: application/json" --data "$datos")
+  fi
+  if [ -n "$TENANT" ]; then
+    args+=(-H "X-Tenant-Id: $TENANT")
   fi
   CODIGO="$(curl "${args[@]}" "$GATEWAY$ruta")"
   if [ -z "$CODIGO" ]; then
@@ -72,6 +79,8 @@ peticion POST /api/users/register \
 [ "$CODIGO" = "201" ] && ok "POST /api/users/register crea el usuario con 201" \
   || fallo "POST /api/users/register esperaba 201 y llegó $CODIGO"
 USUARIO="$(grep -o '"userId":"[^"]*"' "$TMP/cuerpo" | head -1 | sed 's/.*:"\([^"]*\)"/\1/')"
+# El tenant aprobvisionado en el registro es el que viaja en X-Tenant-Id
+TENANT="$(grep -o '"tenantId":"[^"]*"' "$TMP/cuerpo" | head -1 | sed 's/.*:"\([^"]*\)"/\1/')"
 
 # --------------------------------------------------------- Estado sin plan
 peticion GET "/api/users/$USUARIO/subscription-status"
@@ -81,9 +90,21 @@ else
   fallo "sin suscripción el estado esperaba showAds true (código $CODIGO)"
 fi
 
-peticion GET "/api/users/$(guid)/subscription-status"
-[ "$CODIGO" = "404" ] && ok "el estado de un usuario inexistente responde 404" \
-  || fallo "estado de usuario inexistente esperaba 404 y llegó $CODIGO"
+# Sin cabecera el estado no sabe de qué tenant hablar
+SIN_CABECERA="$TENANT"
+TENANT=""
+peticion GET "/api/users/$USUARIO/subscription-status"
+[ "$CODIGO" = "400" ] && ok "el estado sin X-Tenant-Id responde 400" \
+  || fallo "estado sin X-Tenant-Id esperaba 400 y llegó $CODIGO"
+TENANT="$SIN_CABECERA"
+
+# Un tenant que no existe en el Administrador responde 404
+TENANT="$(guid)"
+peticion GET "/api/users/$USUARIO/subscription-status"
+[ "$CODIGO" = "404" ] && ok "el estado de un tenant inexistente responde 404" \
+  || fallo "estado de tenant inexistente esperaba 404 y llegó $CODIGO"
+# Restaurar el tenant real para el resto de las pruebas
+TENANT="$SIN_CABECERA"
 
 # ------------------------------------------------------- Suscripción y anuncios
 peticion POST /api/subscriptions "{\"UserId\":\"$USUARIO\",\"PlanId\":\"$PLAN_UNICA\"}"

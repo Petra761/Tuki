@@ -182,63 +182,6 @@ namespace Tuki.Administrador.Migrations
                     b.ToTable("tenants", (string)null);
                 });
 
-            modelBuilder.Entity("Tuki.Administrador.Models.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("display_name");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("email");
-
-                    b.Property<bool>("EmailVerified")
-                        .HasColumnType("boolean")
-                        .HasColumnName("email_verified");
-
-                    b.Property<int>("FailedLoginAttempts")
-                        .HasColumnType("integer")
-                        .HasColumnName("failed_login_attempts");
-
-                    b.Property<DateTimeOffset?>("LockedUntil")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("locked_until");
-
-                    b.Property<string>("PasswordHash")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("password_hash");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_users");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("ix_users_email");
-
-                    b.HasIndex("TenantId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_users_tenant_id");
-
-                    b.ToTable("users", (string)null);
-                });
-
             modelBuilder.Entity("Tuki.Administrador.Models.ProvisioningEvent", b =>
                 {
                     b.HasOne("Tuki.Administrador.Models.Tenant", "Tenant")
@@ -267,28 +210,7 @@ namespace Tuki.Administrador.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_subscriptions_tenants_tenant_id");
 
-                    b.HasOne("Tuki.Administrador.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_subscriptions_users_user_id");
-
                     b.Navigation("Plan");
-
-                    b.Navigation("Tenant");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Tuki.Administrador.Models.User", b =>
-                {
-                    b.HasOne("Tuki.Administrador.Models.Tenant", "Tenant")
-                        .WithOne("User")
-                        .HasForeignKey("Tuki.Administrador.Models.User", "TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_users_tenants_tenant_id");
 
                     b.Navigation("Tenant");
                 });
@@ -296,8 +218,6 @@ namespace Tuki.Administrador.Migrations
             modelBuilder.Entity("Tuki.Administrador.Models.Tenant", b =>
                 {
                     b.Navigation("ProvisioningEvents");
-
-                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

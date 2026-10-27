@@ -5,7 +5,6 @@ namespace Tuki.Administrador.Data;
 
 public class AdminDbContext(DbContextOptions<AdminDbContext> options) : DbContext(options)
 {
-    public DbSet<User> Users => Set<User>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<ProvisioningEvent> ProvisioningEvents => Set<ProvisioningEvent>();
     public DbSet<Plan> Plans => Set<Plan>();
@@ -17,23 +16,6 @@ public class AdminDbContext(DbContextOptions<AdminDbContext> options) : DbContex
         {
             e.Property(x => x.Id).ValueGeneratedNever();
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
-        });
-
-        modelBuilder.Entity<User>(e =>
-        {
-            e.Property(x => x.Id).ValueGeneratedNever();
-            e.Property(x => x.Email).HasMaxLength(256);
-            e.Property(x => x.DisplayName).HasMaxLength(100);
-            e.Property(x => x.PasswordHash).HasMaxLength(500);
-
-            e.HasIndex(x => x.Email).IsUnique();
-
-            // Un usuario, un tenant
-            e.HasIndex(x => x.TenantId).IsUnique();
-            e.HasOne(x => x.Tenant)
-                .WithOne(x => x.User)
-                .HasForeignKey<User>(x => x.TenantId)
-                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ProvisioningEvent>(e =>
@@ -66,11 +48,9 @@ public class AdminDbContext(DbContextOptions<AdminDbContext> options) : DbContex
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.TenantId);
 
-            // Sin cascada: el historial de suscripciones no se pierde al tocar usuarios o planes
-            e.HasOne(x => x.User)
-                .WithMany()
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Sin cascada: el historial de suscripciones no se pierde al tocar planes o tenants.
+            // La columna user_id queda como identificador simple, sin clave
+            // foránea: la tabla de usuarios vive en Autenticación
             e.HasOne(x => x.Plan)
                 .WithMany()
                 .HasForeignKey(x => x.PlanId)

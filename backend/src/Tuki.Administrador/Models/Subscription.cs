@@ -4,8 +4,10 @@ public class Subscription
 {
     public Guid Id { get; set; }
 
+    // Identificador simple: la tabla de usuarios vive en Autenticación desde
+    // que el login y el registro se separaron del Administrador, así que aquí
+    // no hay navegación ni clave foránea hacia ella
     public Guid UserId { get; set; }
-    public User User { get; set; } = null!;
 
     public Guid PlanId { get; set; }
     public Plan Plan { get; set; } = null!;

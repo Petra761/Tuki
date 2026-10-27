@@ -16,9 +16,13 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
         CancellationToken ct
     )
     {
-        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user is null)
-            return NotFound(new { error = "El usuario no existe." });
+        // La tabla de usuarios vive en Autenticación: el tenant de la sesión
+        // llega en la cabecera, no se deduce de un usuario
+        if (!CabeceraTenant.TryGet(HttpContext, out var tenantId))
+            return BadRequest(new { error = "Debes enviar un X-Tenant-Id valido." });
+
+        if (!await db.Tenants.AsNoTracking().AnyAsync(t => t.Id == tenantId, ct))
+            return NotFound(new { error = "El tenant no existe." });
 
         // Una sola lectura del reloj, en UTC, para toda la evaluación
         var now = (at ?? DateTimeOffset.UtcNow).ToUniversalTime();
@@ -38,11 +42,11 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
         {
             return Ok(
                 new SubscriptionStatusResponse(
-                    user.Id,
+                    userId,
                     nameof(SubscriptionResult.NonExistent),
                     "El usuario no tiene ninguna suscripción hasta la fecha consultada.",
                     null,
-                    user.TenantId,
+                    tenantId,
                     null,
                     null,
                     null,
@@ -60,7 +64,7 @@ public class SubscriptionStatusController(AdminDbContext db) : ControllerBase
 
         return Ok(
             new SubscriptionStatusResponse(
-                user.Id,
+                userId,
                 result.ToString(),
                 reason,
                 current.Plan.Name,
