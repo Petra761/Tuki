@@ -524,3 +524,6 @@ example
 # generated native folders
 /ios
 /android
+
+# respaldos locales de base de datos (scripts/migrar-usuarios.sh)
+/backups/
