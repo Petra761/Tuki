@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,9 @@ public class UsersController(
             DisplayName = request.DisplayName.Trim(),
             CreatedAt = DateTimeOffset.UtcNow,
         };
-        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, request.Password);
+        var password = request.Password ?? GenerateTemporaryPassword();
+        var passwordTemporal = request.Password is null ? password : null;
+        user.PasswordHash = new PasswordHasher<User>().HashPassword(user, password);
 
         // El usuario se guarda aunque el aprovisionamiento haya fallado: es lo que
         // permite después recuperar la cuenta cuando el tenant quede Active
@@ -76,10 +79,20 @@ public class UsersController(
             provisioning.TenantId,
             provisioning.Status,
             provisioning.Services,
+            passwordTemporal,
         };
 
         return provisioning.Status == EstadoTenantActivo
             ? StatusCode(201, body)
             : StatusCode(502, body);
+    }
+
+    private static string GenerateTemporaryPassword()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 }

@@ -8,6 +8,7 @@ export type RegisterResponse = {
   tenantId: string;
   status: string;
   services: { service: string; database: string; result: string; error: string | null }[];
+  passwordTemporal?: string | null;
 };
 
 export function login(email: string, password: string) {
