@@ -36,6 +36,19 @@ builder
 var exigirSesion = builder.Configuration.GetValue<bool>("Tuki:Auth:Exigir");
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy(
+        "reportes-autenticados",
+        policy =>
+            policy
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context =>
+                    Guid.TryParse(
+                        context.User.FindFirst("tenant_id")?.Value,
+                        out var tenantId
+                    ) && tenantId != Guid.Empty
+                )
+    );
+
     if (exigirSesion)
         options.FallbackPolicy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
@@ -89,6 +102,7 @@ if (app.Environment.IsDevelopment())
                 .AddDocument("cuentas", "Cuentas", "/openapi/cuentas.json")
                 .AddDocument("movimientos", "Movimientos", "/openapi/movimientos.json")
                 .AddDocument("presupuestos", "Presupuestos", "/openapi/presupuestos.json")
+                .AddDocument("reportes", "Reportes", "/openapi/reportes.json")
                 // Toma la URL base de la petición actual, así funciona igual en localhost y en el devtunnel
                 .WithDynamicBaseServerUrl();
         })

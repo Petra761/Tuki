@@ -1,0 +1,6 @@
+@Tuki.Reportes_HostAddress = http://localhost:5171
+
+GET {{Tuki.Reportes_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
