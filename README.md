@@ -25,6 +25,7 @@ Aplicación multiplataforma para organizar cuentas, ingresos, gastos y presupues
 - [Ejecutar en local](#ejecutar-en-local)
 - [Ejecutar con Dev Tunnels](#ejecutar-con-dev-tunnels)
 - [Rutas y herramientas](#rutas-y-herramientas)
+- [Pruebas y empaquetado](#pruebas-y-empaquetado)
 
 ## ¿Qué es Tuki?
 
@@ -92,7 +93,7 @@ El comando de desarrollo inicia el Gateway y los cinco servicios. Normalmente so
 │   │   ├── components/          # Componentes reutilizables
 │   │   └── theme/               # Colores y estilos
 │   └── assets/                  # Iconos, imágenes y fuentes
-├── scripts/                     # Inicio y comprobación de Dev Tunnels
+├── scripts/                     # Dev Tunnels, verificaciones y empaquetado
 ├── docs/                        # Documentación y recursos
 ├── .env.example                 # Configuración privada del backend
 └── mobile/.env.example          # URL de API para la app
@@ -110,6 +111,21 @@ Los archivos `.env` se mantienen separados intencionalmente: el de la raíz conf
 
 ## Ejecutar en local
 
+Antes de arrancar, inicia PostgreSQL y crea una vez el usuario de desarrollo
+con permiso para crear las bases de datos de cada tenant:
+
+```sql
+CREATE ROLE tuki_app WITH LOGIN CREATEDB;
+```
+
+Define su contraseña de forma interactiva en `psql` con `\password tuki_app`.
+Luego confía el certificado HTTPS de desarrollo que usan las llamadas entre
+microservicios:
+
+```bash
+dotnet dev-certs https --trust
+```
+
 ### 1. Configurar y levantar el backend
 
 Desde la raíz del proyecto:
@@ -118,7 +134,11 @@ Desde la raíz del proyecto:
 cp .env.example .env
 ```
 
-Edita `.env` con la conexión a PostgreSQL y define `Jwt__Key` con una clave segura. La misma clave debe estar disponible para el Gateway y Autenticación. No compartas el archivo ni lo subas a Git.
+Edita `.env` con la conexión a PostgreSQL. Genera una clave ejecutando
+`openssl rand -base64 32` y asígnala a `Jwt__Key`; usa el mismo valor para el Gateway y
+Autenticación. Conserva los valores no secretos `Jwt__Issuer=Tuki`,
+`Jwt__Audience=Tuki` y `Jwt__ExpirationMinutes=60`. No compartas `.env` ni lo
+subas a Git.
 
 Instala las dependencias de desarrollo y arranca los servicios:
 
@@ -127,7 +147,12 @@ npm install
 npm run dev:backend
 ```
 
-Espera a que el Gateway y los demás servicios indiquen que están escuchando. La API queda disponible en `http://localhost:5005` y `https://localhost:5000`. Las migraciones de las bases globales se aplican al iniciar; las bases de los tenants se crean al registrar usuarios.
+Espera a que el Gateway y los cinco servicios indiquen que están escuchando.
+La API queda disponible en `http://localhost:5005` y `https://localhost:5000`.
+Al arrancar se aplican las migraciones de las bases globales de Administrador y
+Autenticación. Al registrar un usuario, el Administrador crea las bases de su
+tenant y cada servicio aplica sus migraciones. No ejecutes esas migraciones
+manualmente para el flujo local.
 
 ### 2. Configurar y abrir la app
 
@@ -236,6 +261,33 @@ Para validar los tipos de la app:
 cd mobile
 npm run typecheck
 ```
+
+## Pruebas y empaquetado
+
+Desde la raíz, compila toda la solución:
+
+```bash
+dotnet build backend/Tuki.sln
+```
+
+Con el backend en marcha, `./scripts/verificar-rutas.sh` comprueba que las
+rutas públicas de OpenAPI estén enrutadas por el Gateway. Si usas Dev Tunnels,
+`./scripts/verificar-tunel.sh <url-https-del-tunel>` comprueba también la
+conectividad externa; sus solicitudes de login usan un correo ficticio y no
+crean cuentas.
+
+Para preparar el comprimido de entrega:
+
+```bash
+./scripts/package.sh
+```
+
+El paquete queda en `artifacts/` y contiene el último `HEAD` comprometido; por
+eso, confirma primero los cambios que quieras entregar. Omite `.env`,
+dependencias y resultados de compilación. Usa RAR cuando `rar` está
+instalado; si no, genera ZIP. El empaquetador detiene la creación si encuentra
+patrones conocidos de credenciales para que se revisen antes de compartir el
+archivo.
 
 ---
 
