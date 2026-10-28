@@ -45,11 +45,11 @@ fi
 
 known_secret_pattern='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AIza[0-9A-Za-z_-]{35}|sk_(live|test)_[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|(postgres|postgresql)://[^[:space:]@]+:[^[:space:]@]+@'
 config_secret_pattern='"(password|passwd|secret|apikey|api_key|service[_-]?role[_-]?key|jwt[_-]?key|token|connectionstring|key)"[[:space:]]*:[[:space:]]*"[^"]{8,}"|^[[:space:]]*[A-Za-z0-9_]*(PASSWORD|PASSWD|JWT__KEY|API_KEY|SECRET|TOKEN|SERVICE_ROLE_KEY)[A-Za-z0-9_]*[[:space:]]*=[[:space:]]*[^[:space:]]{8,}'
-known_matches="$(grep -RIlE --binary-files=without-match "$known_secret_pattern" "$tree" || true)"
+known_matches="$(grep -RIlE --binary-files=without-match -- "$known_secret_pattern" "$tree" || true)"
 config_matches="$(
   grep -RIlEi --binary-files=without-match \
     --include='*.json' --include='*.yaml' --include='*.yml' --include='.env*' \
-    "$config_secret_pattern" "$tree" || true
+    -- "$config_secret_pattern" "$tree" || true
 )"
 
 if [[ -n "$known_matches$config_matches" ]]; then
